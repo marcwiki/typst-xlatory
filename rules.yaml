@@ -1,0 +1,75 @@
+# rules.yaml - Übersetzungskonfiguration für Typst -> OmegaT
+
+# Funktionen, die das Layout steuern und ignoriert werden müssen
+hide_functions:
+  - outline
+  - pagebreak
+  - apply-title-page-layout
+  - apply-first-page-layout
+  - start-normal-text
+  - counter
+  - cover-page
+  - include
+  - v
+  - h
+  - link
+
+# Funktionen, deren Parameter übersetzt werden sollen
+translation_rules:
+  - funcName: author-name
+    strategy: xlate-without-tag
+  - funcName: bookTitle
+    strategy: xlate-without-tag
+  - funcName: book-subtitle
+    strategy: xlate-without-tag
+  - funcName: book-publisher
+    strategy: xlate-without-tag  
+  - funcName: chapter-intro
+    strategy: xlate-without-tag
+  - funcName: chapter-extract
+    strategy: xlate-without-tag
+  - funcName: chapter-extract-meta-only
+    strategy: xlate-without-tag
+  - funcName: comment-cursive-h1
+    strategy: xlate-without-tag
+  - funcName: comment-cursive-h3
+    strategy: xlate-without-tag
+  - funcName: comment-cursive-h4
+    strategy: xlate-without-tag
+  - funcName: comment-cursive-h2-info-extract
+    strategy: xlate-without-tag
+  - funcName: comment-h1-title
+    strategy: xlate-without-tag
+  - funcName: comment-h1-sub-title
+    strategy: xlate-without-tag
+  - funcName: comment-h1-title-info
+    strategy: xlate-without-tag
+  - funcName: comment-serif-h3
+    strategy: xlate-without-tag
+  - funcName: comment-serif-h3-info-extract
+    strategy: xlate-without-tag
+  - funcName: comment-serif-h4-info-extract
+    strategy: xlate-without-tag
+  - funcName: comment-serif-h5
+    strategy: xlate-without-tag
+  - funcName: conclusion-block
+    strategy: xlate-both
+  - funcName: first-par
+    strategy: xlate-without-tag
+  - funcName: h1.title
+    strategy: xlate-without-tag
+  - funcName: h1-title-info
+    strategy: xlate-without-tag
+  - funcName: initial
+    strategy: xlate-without-tag
+  - funcName: right-text
+    strategy: xlate-without-tag
+  - funcName: row
+    strategy: xlate-both
+  - funcName: small-text
+    strategy: xlate-without-tag
+  - funcName: speaker
+    strategy: xlate-without-tag
+  - funcName: title-info
+    strategy: xlate-without-tag
+  
