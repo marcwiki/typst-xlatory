@@ -1,4 +1,14 @@
 # rules.yaml - Übersetzungskonfiguration für Typst -> OmegaT
+# Verzeichnis-Konfiguration für die Pipeline
+# TODO: defined correct paths and use it from within the transpiler
+# instead of hardcoded paths
+
+# Relative Pfade für die Pipeline
+directories:
+  ru_dir: "../arepjev-buecher-typst/buch_1_ru"
+  de_dir: "../arepjev-buecher-typst/buch_1_de"
+  omega_source_dir: "../typst-omegat/source"
+  omega_target_dir: "../typst-omegat/target"
 
 # Funktionen, die das Layout steuern und ignoriert werden müssen
 hide_functions:
@@ -52,7 +62,7 @@ translation_rules:
     strategy: xlate-without-tag
   - funcName: comment-serif-h5
     strategy: xlate-without-tag
-  - funcName: conclusion-block
+  - funcName: conclusion
     strategy: xlate-both
   - funcName: first-par
     strategy: xlate-without-tag
