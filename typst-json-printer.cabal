@@ -24,7 +24,8 @@ library
       Typst.AST
       Typst.Parser
       Typst.Printer
-      Typst.Importer
+      Typst.ImporterParser
+      Typst.Reconstructor
   other-modules:
       Paths_typst_json_printer
   autogen-modules:
