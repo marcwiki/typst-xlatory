@@ -1,7 +1,9 @@
 # Stack / GHC Build-Artefakte
 .stack-work/
+*.cabal
 *.o
 *.hi
 *.dyn_o
 *.dyn_hi
-*.pdf.stack-work/
+*.pdf
+

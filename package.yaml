@@ -1,0 +1,39 @@
+name:                typst-json-printer
+version:             0.1.0.0
+github:              "marcg/typst-json-printer"
+license:             GPL-3.0-or-later
+author:              "Marc"
+copyright:           "2026 Marc"
+
+dependencies:
+  - base >= 4.7 && < 5
+  - text
+  - megaparsec
+  - yaml
+  - containers
+  - bytestring
+  - directory
+  - filepath
+  - mtl
+
+# Phase 1 & 2 leben geschützt in der Library
+library:
+  source-dirs: src
+  exposed-modules:
+    - Typst.AST
+    - Typst.Parser
+    - Typst.Printer
+    - Typst.ImporterParser
+    - Typst.Reconstructor
+
+# Der I/O-Loop und CLI-Startpunkt lebt im Executable
+executables:
+  typst-json-printer-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - typst-json-printer # Importiert die eigene Library von oben
