@@ -136,18 +136,22 @@ reconstructSingleNode node transMap hideSet currentId = case node of
 
                 -- Prüft, ob es eine Übersetzung für ein benanntes 'label'-Argument gibt (z.B. func_row_p_id_5_label)
                 mTranslatedLabel = M.lookup ("func_" <> name <> "_" <> idBase <> "_label") transMap
+                mTranslatedTitle = M.lookup ("func_" <> name <> "_" <> idBase <> "_title") transMap
 
-                -- Falls label übersetzt wurde, wieder in Anführungszeichen verpacken:
                 updatedNamedArgs =
                   map
                     ( \(k, v) ->
-                        if k == "label"
-                          then case mTranslatedLabel of
+                        case k of
+                          "label" -> case mTranslatedLabel of
                             Just trInlines -> (k, "\"" <> T.dropAround (== '"') (printInlines trInlines) <> "\"")
                             Nothing -> (k, v)
-                          else (k, v)
+                          "title" -> case mTranslatedTitle of
+                            Just trInlines -> (k, "\"" <> T.dropAround (== '"') (printInlines trInlines) <> "\"")
+                            Nothing -> (k, v)
+                          _ -> (k, v)
                     )
                     [(k, v) | NamedArg k v <- args]
+
 
                 -- Beide (String- und Raw-Argumente) sind bereits exakt formatiert!
                 formatNamedArg (k, v) = k <> ": " <> v

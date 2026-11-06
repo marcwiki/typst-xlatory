@@ -24,28 +24,50 @@ data TranslatedProperty = TranslatedProperty
 
 -- | Haupt-Einstiegspunkt für den Import: Parsed die gesamte .properties Datei
 parsePropertiesFile :: Parser [TranslatedProperty]
-parsePropertiesFile = many (try propertyLineParser <* space)
+parsePropertiesFile = do
+  _ <- space
+  props <- many (try propertyLineParser <* space)
+  return props
 
--- | Parsed eine einzelne Zeile: key=value
--- | Parsed eine einzelne Zeile: key=value
+-- | Parsed einen Eintrag (ein- oder mehrzeilig), bis der nächste key= oder eof kommt
 propertyLineParser :: Parser TranslatedProperty
 propertyLineParser = do
-  -- Kommentare und führende Leerzeilen sauber überspringen
-  _ <- space
+  -- Kommentare überspringen
   _ <- skipMany (char '#' >> takeWhileP Nothing (/= '\n') >> eol >> space)
 
-  key <- takeWhile1P (Just "Property Key") (\c -> c /= '=')
+  -- Key einlesen (darf kein Zeilenumbruch oder '=' enthalten)
+  key <- takeWhile1P (Just "Property Key") (\c -> c `notElem` ['=', '\n', '\r'])
   _ <- char '='
-  rawValue <- takeWhileP (Just "Property Value") (\c -> c /= '\n')
-  -- FIX: Wir konsumieren das Zeilenende (eol) jetzt zwingend physisch,
-  -- damit der Parser sauber zur nächsten Zeile vorrückt!
+  
+  -- Erste Zeile einlesen
+  firstLine <- takeWhileP (Just "Property Value") (\c -> c /= '\n' && c /= '\r')
   _ <- optional eol
 
+  -- Liest ALLE Folgezeilen ein, solange sie KEIN neuer key= sind und nicht leer sind
+  contLines <- many $ try $ do
+    notFollowedBy eof
+    notFollowedBy eol               -- Stoppt bei einer Leerzeile
+    notFollowedBy (char '#')        -- Stoppt bei Kommentaren
+    notFollowedBy nextPropertyKey   -- Stoppt, sobald eine neue Zeile mit 'irgendwas=' beginnt!
+    line <- takeWhile1P (Just "Continuation Line") (\c -> c /= '\n' && c /= '\r')
+    _ <- optional eol
+    -- Entfernt eventuelle Java-Properties Backslashes '\' am Zeilenende und Leerzeichen
+    return (T.strip (T.dropWhileEnd (== '\\') (T.stripEnd line)))
+
+  let cleanFirst = T.strip (T.dropWhileEnd (== '\\') (T.stripEnd firstLine))
+      rawValue   = T.intercalate " " (filter (not . T.null) (cleanFirst : contLines))
+
   let inlineAST = case parse parseOmegaTInline "" rawValue of
-        Left _ -> [PlainText rawValue]
+        Left _    -> [PlainText rawValue]
         Right ast -> ast
 
   return $ TranslatedProperty (T.strip key) inlineAST
+  where
+    -- Erkennt, ob auf der aktuellen Zeile ein neuer Property-Key (z. B. "func_...=") startet
+    nextPropertyKey = do
+      _ <- takeWhile1P Nothing (\c -> c `notElem` ['=', '\n', '\r', ' '])
+      _ <- char '='
+      return ()
 
 -- | Der spezifische Parser für den Inhalt eines OmegaT-Werts
 parseOmegaTInline :: Parser [TypstInline]
