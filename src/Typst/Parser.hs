@@ -35,14 +35,14 @@ nodeParser :: Parser (Maybe BookNode)
 nodeParser = do
   notFollowedBy eof
   choice
-    [ try multilineImportParser   -- <-- NEU: Fängt #import (...) ganz oben ab!
-    , try outlineFilterParser
-    , try ignoreCommandsParser
-    , try headingParser
-    , try functionParser
-    , paragraphParser
-    ] <* space
-
+    [ try multilineImportParser, -- <-- NEU: Fängt #import (...) ganz oben ab!
+      try outlineFilterParser,
+      try ignoreCommandsParser,
+      try headingParser,
+      try functionParser,
+      paragraphParser
+    ]
+    <* space
   where
     -- Fängt #outline und #import ab und reicht den Text 1:1 als MalformedFunction durch
     outlineFilterParser = do
@@ -71,28 +71,32 @@ multilineImportParser = do
     return ()
   return $ Just (MalformedFunction (T.stripEnd rawText))
 
-
 ignoreCommandsParser :: Parser (Maybe BookNode)
 ignoreCommandsParser = do
   (rawText, _) <- match $ do
     _ <- hspace
-    _ <-
-      choice
-        [ try $ do
-            _ <- string "#import"
-            _ <- takeWhileP Nothing (\c -> c /= '(' && c /= '\n')
-            _ <- char '('
-            _ <- manyTill anySingle (char ')')
-            return (),
-          string "#import" >> return (),
-          string "#show" >> return (),
-          string "#set" >> return (),
-          string "//" >> return (),
-          try (string "#v(" >> manyTill anySingle (char ')')) >> return (),
-          try (string "#h(" >> manyTill anySingle (char ')')) >> return ()
-        ]
-    _ <- optional (manyTill anySingle eol)
-    return ()
+    choice
+      [ -- 1. Abstände: Stoppen exakt nach ')', damit Text dahinter erhalten bleibt
+        try (string "#v(" >> manyTill anySingle (char ')') >> return ()),
+        try (string "#h(" >> manyTill anySingle (char ')') >> return ()),
+        -- 2. Zeilen-Befehle & mehrzeilige Imports: Lesen bis zum Zeilenende
+        do
+          _ <-
+            choice
+              [ try $ do
+                  _ <- string "#import"
+                  _ <- takeWhileP Nothing (\c -> c /= '(' && c /= '\n')
+                  _ <- char '('
+                  _ <- manyTill anySingle (char ')')
+                  return (),
+                string "#import" >> return (),
+                string "#show" >> return (),
+                string "#set" >> return (),
+                string "//" >> return ()
+              ]
+          _ <- optional (manyTill anySingle eol)
+          return ()
+      ]
   return $ Just (MalformedFunction (T.stripEnd rawText))
 
 headingParser :: Parser (Maybe BookNode)
@@ -187,12 +191,12 @@ parenArgsParser = between (char '(') (char ')') $ do
 anyArgParser :: Parser (Maybe TypstArg)
 anyArgParser =
   choice
-    [ try (Just <$> namedStringArgParser) -- Erkennt Key: "String" -> behält "..."
-    , try (Just <$> namedRawArgParser)    -- Erkennt Key: 0mm / true -> ohne "..."
-    , skipArg
+    [ try (Just <$> namedStringArgParser), -- Erkennt Key: "String" -> behält "..."
+      try (Just <$> namedRawArgParser), -- Erkennt Key: 0mm / true -> ohne "..."
+      skipArg
     ]
   where
-    identParser = takeWhile1P (Just "Arg Key") (\c -> c `elem` (['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ['-', '_']))
+    identParser = takeWhile1P (Just "Arg Key") (\c -> c `elem` (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['-', '_']))
 
     namedStringArgParser = do
       key <- identParser

@@ -81,8 +81,8 @@ nodeToProperty node = case node of
 
     -- Gibt alle existierenden Zeilen sauber getrennt zurück
     return $ T.intercalate "\n" (filter (not . T.null) [propTitle, propLabel, propArg])
-  MalformedFunction orig ->
-    return $ "#MALFORMED=" <> orig
+  MalformedFunction _ ->
+    return T.empty
 
 printCleanArg :: T.Text -> T.Text -> TypstArg -> PrintState T.Text
 printCleanArg funcName idBase arg = case arg of

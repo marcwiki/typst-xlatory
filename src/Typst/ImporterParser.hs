@@ -38,7 +38,7 @@ propertyLineParser = do
   -- Key einlesen (darf kein Zeilenumbruch oder '=' enthalten)
   key <- takeWhile1P (Just "Property Key") (\c -> c `notElem` ['=', '\n', '\r'])
   _ <- char '='
-  
+
   -- Erste Zeile einlesen
   firstLine <- takeWhileP (Just "Property Value") (\c -> c /= '\n' && c /= '\r')
   _ <- optional eol
@@ -46,25 +46,26 @@ propertyLineParser = do
   -- Liest ALLE Folgezeilen ein, solange sie KEIN neuer key= sind und nicht leer sind
   contLines <- many $ try $ do
     notFollowedBy eof
-    notFollowedBy eol               -- Stoppt bei einer Leerzeile
-    notFollowedBy (char '#')        -- Stoppt bei Kommentaren
-    notFollowedBy nextPropertyKey   -- Stoppt, sobald eine neue Zeile mit 'irgendwas=' beginnt!
+    notFollowedBy eol -- Stoppt bei einer Leerzeile
+    notFollowedBy (char '#') -- Stoppt bei Kommentaren
+    notFollowedBy nextPropertyKey -- Stoppt, sobald eine neue Zeile mit 'irgendwas=' beginnt!
     line <- takeWhile1P (Just "Continuation Line") (\c -> c /= '\n' && c /= '\r')
     _ <- optional eol
     -- Entfernt eventuelle Java-Properties Backslashes '\' am Zeilenende und Leerzeichen
     return (T.strip (T.dropWhileEnd (== '\\') (T.stripEnd line)))
 
   let cleanFirst = T.strip (T.dropWhileEnd (== '\\') (T.stripEnd firstLine))
-      rawValue   = T.intercalate " " (filter (not . T.null) (cleanFirst : contLines))
+      rawValue = T.intercalate " " (filter (not . T.null) (cleanFirst : contLines))
 
   let inlineAST = case parse parseOmegaTInline "" rawValue of
-        Left _    -> [PlainText rawValue]
+        Left _ -> [PlainText rawValue]
         Right ast -> ast
 
   return $ TranslatedProperty (T.strip key) inlineAST
   where
-    -- Erkennt, ob auf der aktuellen Zeile ein neuer Property-Key (z. B. "func_...=") startet
+    -- Erkennt sicher, ob auf der aktuellen Zeile ein neuer OmegaT-Key startet
     nextPropertyKey = do
+      _ <- choice [string "text_", string "func_", string "heading_"]
       _ <- takeWhile1P Nothing (\c -> c `notElem` ['=', '\n', '\r', ' '])
       _ <- char '='
       return ()
