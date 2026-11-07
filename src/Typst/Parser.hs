@@ -262,13 +262,15 @@ cleanInlineSpacing input
            in T.strip (before <> trueText)
   | otherwise = input
 
--- Erkennt flache und verpackte Outlines vollständig und gibt Nothing zurück
+-- Erkennt flache und verpackte Outlines vollständig und reicht sie 1:1 durch
 outlineFilterParser :: Parser (Maybe BookNode)
-outlineFilterParser =
-  choice
-    [ try skipPadWithOutline,
-      try skipFlatOutline
-    ]
+outlineFilterParser = do
+  (rawText, _) <- match $
+    choice
+      [ try skipPadWithOutline,
+        try skipFlatOutline
+      ]
+  return $ Just (MalformedFunction (T.stripEnd rawText))
   where
     -- Fall 1: #outline(...) flach in der Source
     skipFlatOutline = do
@@ -276,9 +278,8 @@ outlineFilterParser =
       _ <- string "outline"
       _ <- space
       _ <- char '('
-      -- Liest alles bis zur korrespondierenden schliessenden Klammer
       _ <- balancedParens 1
-      return Nothing
+      return ()
 
     -- Fall 2: #pad(...) [ #outline(...) ]
     skipPadWithOutline = do
@@ -292,7 +293,7 @@ outlineFilterParser =
       _ <- skipFlatOutline
       _ <- space
       _ <- char ']'
-      return Nothing
+      return ()
 
 -- Hilfsparser: Zählt geöffnete und geschlossene runde Klammern
 balancedParens :: Int -> Parser ()

@@ -37,7 +37,8 @@ nodeToProperty node = case node of
         return $ "p_id_" <> T.pack (show currentId)
 
     -- Fügt die Inlines zu einem sauberen Text zusammen
-    let fullText = T.unwords (map printInline inlines)
+    let fullText = normalizeKeepParagraphs (T.unwords (map printInline inlines))
+    return $ T.concat ["text_", idBase, "=", fullText]
 
     return $ T.concat ["text_", idBase, "=", T.strip fullText]
   Heading lvl txt mLabel -> do
@@ -69,7 +70,7 @@ nodeToProperty node = case node of
 
     -- 2. Generiere die drei OmegaT-Zeilen (inklusive title)
     let propArg = case mTextArg of
-          Just txt -> T.concat ["func_", name, "_", idBase, "_arg=", txt]
+          Just txt -> T.concat ["func_", name, "_", idBase, "_arg=", normalizeKeepParagraphs txt]
           Nothing -> T.empty
 
         propLabel = case mLabelArg of
@@ -159,3 +160,16 @@ printInline (InlineLink target label) = T.concat ["#link(", target, ")[", label,
 printInline (InlineBold inlines) =
   -- Übersetzt den fettgedruckten Inhalt rekursiv und verpackt ihn in HTML-Tags für OmegaT
   T.concat ["<b>", T.unwords (map printInline inlines), "</b>"]
+
+-- Glättet einzelne Zeilenumbrüche innerhalb eines Absatzes zu Leerzeichen,
+-- bewahrt aber doppelte Zeilenumbrüche (\n\n) als echte Absatztrennung.
+normalizeKeepParagraphs :: T.Text -> T.Text
+normalizeKeepParagraphs txt =
+  let -- Vereinheitlicht Windows-Zeilenumbrüche (\r\n) zu \n
+      unixTxt = T.replace "\r\n" "\n" txt
+      -- Trennt an doppelten Zeilenumbrüchen (auch wenn Leerzeichen dazwischen sind)
+      blocks = T.splitOn "\n\n" unixTxt
+      -- Glättet jeden Block für sich zu einer sauberen Fließtext-Zeile
+      cleanBlocks = map (T.unwords . T.words) blocks
+   in T.intercalate "\n\n" (filter (not . T.null) cleanBlocks)
+
