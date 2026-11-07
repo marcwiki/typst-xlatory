@@ -92,6 +92,7 @@ ignoreCommandsParser = do
                 string "#import" >> return (),
                 string "#show" >> return (),
                 string "#set" >> return (),
+                string "#pagebreak" >> return (),   -- <-- NEU: Layout-Befehl 1:1 durchreichen!
                 string "//" >> return ()
               ]
           _ <- optional (manyTill anySingle eol)

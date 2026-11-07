@@ -40,9 +40,13 @@ nodeToProperty node = case node of
     let fullText = T.unwords (map printInline inlines)
 
     return $ T.concat ["text_", idBase, "=", T.strip fullText]
-  Heading lvl txt _ -> do
-    currentId <- getNextId
-    return $ "heading_lvl_" <> T.pack (show lvl) <> "_" <> T.pack (show currentId) <> "=" <> txt
+  Heading lvl txt mLabel -> do
+    idBase <- case mLabel of
+      Just lbl -> return $ cleanLabelForKey lbl
+      Nothing -> do
+        currentId <- getNextId
+        return $ "h_id_" <> T.pack (show currentId)
+    return $ "heading_lvl_" <> T.pack (show lvl) <> "_" <> idBase <> "=" <> txt
   CustomFunction name args mLabel -> do
     rememberFunction name
 
@@ -107,7 +111,8 @@ findEmbeddedLabel (NamedArg _ val : xs) =
   if "<" `T.isInfixOf` val then snd (extractLabel val) else findEmbeddedLabel xs
 
 cleanLabelForKey :: T.Text -> T.Text
-cleanLabelForKey lbl = T.replace "<" "" (T.replace ">" "" lbl)
+cleanLabelForKey lbl =
+  T.replace ":" "_" $ T.replace "<" "" (T.replace ">" "" lbl)
 
 getNextId :: PrintState Int
 getNextId = do

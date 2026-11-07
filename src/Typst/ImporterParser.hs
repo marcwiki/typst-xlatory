@@ -18,7 +18,7 @@ type Parser = Parsec Void T.Text
 -- | Repräsentiert einen gelesenen Eintrag aus der OmegaT-Datei
 data TranslatedProperty = TranslatedProperty
   { propKey :: T.Text,
-    propValue :: [TypstInline] -- Der fix und fertig geparste Inline-AST
+    propValue :: [TypstInline]
   }
   deriving (Show, Eq)
 
@@ -26,36 +26,30 @@ data TranslatedProperty = TranslatedProperty
 parsePropertiesFile :: Parser [TranslatedProperty]
 parsePropertiesFile = do
   _ <- space
-  props <- many (try propertyLineParser <* space)
-  return props
+  many (try propertyLineParser <* space)
 
--- | Parsed einen Eintrag (ein- oder mehrzeilig), bis der nächste key= oder eof kommt
+-- | Parsed eine einzelne (auch mehrzeilige) Property-Definition: key=value
 propertyLineParser :: Parser TranslatedProperty
 propertyLineParser = do
-  -- Kommentare überspringen
-  _ <- skipMany (char '#' >> takeWhileP Nothing (/= '\n') >> eol >> space)
+  -- Kommentare überspringen (aber keine #link-Zeilen)
+  _ <- skipMany (try (char '#' >> notFollowedBy (string "link") >> takeWhileP Nothing (/= '\n') >> eol >> space))
 
-  -- Key einlesen (darf kein Zeilenumbruch oder '=' enthalten)
   key <- takeWhile1P (Just "Property Key") (\c -> c `notElem` ['=', '\n', '\r'])
   _ <- char '='
-
-  -- Erste Zeile einlesen
   firstLine <- takeWhileP (Just "Property Value") (\c -> c /= '\n' && c /= '\r')
   _ <- optional eol
 
-  -- Liest ALLE Folgezeilen ein, solange sie KEIN neuer key= sind und nicht leer sind
+  -- Liest alle Folgezeilen (inkl. Leerzeilen in Blöcken wie #chapter-extract) bis zum nächsten key=
   contLines <- many $ try $ do
     notFollowedBy eof
-    notFollowedBy eol -- Stoppt bei einer Leerzeile
-    notFollowedBy (char '#') -- Stoppt bei Kommentaren
-    notFollowedBy nextPropertyKey -- Stoppt, sobald eine neue Zeile mit 'irgendwas=' beginnt!
-    line <- takeWhile1P (Just "Continuation Line") (\c -> c /= '\n' && c /= '\r')
+    notFollowedBy (try (char '#' >> notFollowedBy (string "link")))
+    notFollowedBy nextPropertyKey
+    line <- takeWhileP (Just "Continuation Line") (\c -> c /= '\n' && c /= '\r')
     _ <- optional eol
-    -- Entfernt eventuelle Java-Properties Backslashes '\' am Zeilenende und Leerzeichen
     return (T.strip (T.dropWhileEnd (== '\\') (T.stripEnd line)))
 
   let cleanFirst = T.strip (T.dropWhileEnd (== '\\') (T.stripEnd firstLine))
-      rawValue = T.intercalate " " (filter (not . T.null) (cleanFirst : contLines))
+      rawValue = T.intercalate "\n" (filter (not . T.null) (cleanFirst : contLines))
 
   let inlineAST = case parse parseOmegaTInline "" rawValue of
         Left _ -> [PlainText rawValue]
@@ -74,6 +68,7 @@ propertyLineParser = do
 parseOmegaTInline :: Parser [TypstInline]
 parseOmegaTInline = many (choice [try omegatLinkParser, try omegatBoldParser, omegatTextParser])
   where
+    -- 1. Erkennt Links: #link(<target>)[text] mit flexiblen Spaces
     omegatLinkParser = try $ do
       _ <- string "#link"
       _ <- hspace
@@ -88,13 +83,17 @@ parseOmegaTInline = many (choice [try omegatLinkParser, try omegatBoldParser, om
       _ <- char ']'
       return $ InlineLink (T.strip target) (T.strip linkText)
 
+    -- 2. Erkennt Bold-Tags: <b>inhalt</b>
     omegatBoldParser = try $ do
       _ <- string "<b>"
-      -- FIX: try omegatBoldParser in die innere Auswahlliste aufgenommen für volle Rekursion!
       content <- many (notFollowedBy (string "</b>") >> choice [try omegatLinkParser, try omegatBoldParser, omegatTextParser])
       _ <- string "</b>"
       return $ InlineBold content
 
+    -- 3. Liest normalen Text, stoppt vor </b>, <...> oder #link, erlaubt aber #initial
     omegatTextParser = do
-      txt <- takeWhile1P (Just "Plain Text") (\c -> c `notElem` ['<', '#'])
-      return $ PlainText txt
+      notFollowedBy (string "</b>")
+      notFollowedBy (string "#link")
+      c <- anySingle
+      rest <- takeWhileP (Just "Plain Text") (\ch -> ch `notElem` ['<', '#'])
+      return $ PlainText (T.cons c rest)
