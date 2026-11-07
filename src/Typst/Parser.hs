@@ -43,19 +43,6 @@ nodeParser = do
       paragraphParser
     ]
     <* space
-  where
-    -- Fängt #outline und #import ab und reicht den Text 1:1 als MalformedFunction durch
-    outlineFilterParser = do
-      cmd <- choice [string "#outline", string "#import", string "#set", string "#show"]
-      -- Liest den gesamten Befehl bis zum Zeilenende ein
-      rest <- takeWhileP (Just "Filter rest") (\c -> c /= '\n')
-      return $ Just (MalformedFunction (cmd <> rest))
-
-    -- Fängt pure Labels, Kommentare oder rohe Abstände ab
-    ignoreCommandsParser = do
-      cmd <- choice [string "//", string "#v(", string "#h(", string "<"]
-      rest <- takeWhileP (Just "Ignore rest") (\c -> c /= '\n')
-      return $ Just (MalformedFunction (cmd <> rest))
 
 multilineImportParser :: Parser (Maybe BookNode)
 multilineImportParser = do
@@ -76,7 +63,7 @@ ignoreCommandsParser = do
   (rawText, _) <- match $ do
     _ <- hspace
     choice
-      [ -- 1. Abstände: Stoppen exakt nach ')', damit Text dahinter erhalten bleibt
+      [ -- 1. Inline-Abstände: Stoppen exakt nach ')', damit Text dahinter (z. B. А 80) erhalten bleibt
         try (string "#v(" >> manyTill anySingle (char ')') >> return ()),
         try (string "#h(" >> manyTill anySingle (char ')') >> return ()),
         -- 2. Zeilen-Befehle & mehrzeilige Imports: Lesen bis zum Zeilenende
@@ -90,15 +77,18 @@ ignoreCommandsParser = do
                   _ <- manyTill anySingle (char ')')
                   return (),
                 string "#import" >> return (),
+                string "#include" >> return (),
                 string "#show" >> return (),
                 string "#set" >> return (),
-                string "#pagebreak" >> return (),   -- <-- NEU: Layout-Befehl 1:1 durchreichen!
+                string "#pagebreak" >> return (),
+                string "#counter" >> return (),
                 string "//" >> return ()
               ]
           _ <- optional (manyTill anySingle eol)
           return ()
       ]
   return $ Just (MalformedFunction (T.stripEnd rawText))
+
 
 headingParser :: Parser (Maybe BookNode)
 headingParser = do
