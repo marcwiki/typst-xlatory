@@ -80,6 +80,7 @@ ignoreCommandsParser = do
                 string "#include" >> return (),
                 string "#show" >> return (),
                 string "#set" >> return (),
+                string "#cover-page" >> return (),
                 string "#pagebreak" >> return (),
                 string "#counter" >> return (),
                 string "//" >> return ()

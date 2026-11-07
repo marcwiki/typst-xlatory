@@ -162,7 +162,7 @@ reconstructSingleNode node transMap hideSet currentId = case node of
 
                 parensContent =
                   if T.null namedArgsString
-                    then ""
+                    then if name `elem` ["cover-page", "pagebreak"] then "()" else ""
                     else "(" <> namedArgsString <> ")"
 
                 finalContentText = case mTextArg of
