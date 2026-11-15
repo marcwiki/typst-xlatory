@@ -51,13 +51,7 @@ nodeToProperty node = case node of
   CustomFunction name args mLabel -> do
     rememberFunction name
 
-    -- 1. Extrahiere den reinen Text und ein eventuell im Text eingebettetes Tag
     let (mTextArg, embeddedTag) = findContentAndTag args
-        mLabelArg = findNamedArgValue "label" args
-        -- FIX: Wir fischen hier das benannte title-Argument heraus!
-        mTitleArg = findNamedArgValue "title" args
-
-        -- Priorität für die ID: 1. Explizites mLabel, 2. Im Text gefundenes Tag
         finalLabel = case mLabel of
           Just l -> Just l
           Nothing -> embeddedTag
@@ -68,24 +62,21 @@ nodeToProperty node = case node of
         currentId <- getNextId
         return $ T.pack (show currentId)
 
-    -- 2. Generiere die drei OmegaT-Zeilen (inklusive title)
+    -- 1. Alle übersetzbaren Named Arguments dynamisch einsammeln
+    let translatableNamedArgs =
+          [ let cleanVal = T.strip (T.drop 1 (T.dropEnd 1 (T.strip v)))
+             in T.concat ["func_", name, "_", idBase, "_arg_", k, "=", cleanVal]
+          | NamedArg k v <- args,
+            isTranslatableNamedArg (k, v)
+          ]
+
+    -- 2. Hauptinhalt ([...]) wie bisher
     let propArg = case mTextArg of
-          Just txt -> T.concat ["func_", name, "_", idBase, "_arg=", normalizeKeepParagraphs txt]
-          Nothing -> T.empty
+          Just txt -> [T.concat ["func_", name, "_", idBase, "_arg=", normalizeKeepParagraphs txt]]
+          Nothing -> []
 
-        propLabel = case mLabelArg of
-          Just lblVal -> T.concat ["func_", name, "_", idBase, "_label=", lblVal]
-          Nothing -> T.empty
-
-        -- FIX: Wenn ein Titel da ist, säubern wir ihn von Anführungszeichen für OmegaT
-        propTitle = case mTitleArg of
-          Just titleVal ->
-            let cleanTitle = T.replace "\"" "" titleVal
-             in T.concat ["func_", name, "_", idBase, "_title=", T.strip cleanTitle]
-          Nothing -> T.empty
-
-    -- Gibt alle existierenden Zeilen sauber getrennt zurück
-    return $ T.intercalate "\n" (filter (not . T.null) [propTitle, propLabel, propArg])
+    -- Alle existierenden Zeilen sauber getrennt zurückgeben
+    return $ T.intercalate "\n" (translatableNamedArgs ++ propArg)
   MalformedFunction _ ->
     return T.empty
 
@@ -173,3 +164,13 @@ normalizeKeepParagraphs txt =
       cleanBlocks = map (T.unwords . T.words) blocks
    in T.intercalate "\n\n" (filter (not . T.null) cleanBlocks)
 
+-- Hilfsfunktion: Prüft, ob ein NamedArg übersetzbaren Text enthält
+isTranslatableNamedArg :: (T.Text, T.Text) -> Bool
+isTranslatableNamedArg (k, v) =
+  let stripped = T.strip v
+      -- Technische String-Parameter, die nie übersetzt werden sollen:
+      ignoredKeys = ["font", "style", "weight", "lang", "region", "fill", "stroke", "align"]
+      isQuoted = "\"" `T.isPrefixOf` stripped && "\"" `T.isSuffixOf` stripped && T.length stripped >= 2
+      inner = T.drop 1 (T.dropEnd 1 stripped)
+      isHexColor = "#" `T.isPrefixOf` inner
+   in (k `notElem` ignoredKeys) && isQuoted && not isHexColor && not (T.null (T.strip inner))

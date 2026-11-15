@@ -8,6 +8,7 @@ import GHC.Generics
 
 data TypstArg
   = NamedArg T.Text T.Text
+  | PositionalArg T.Text
   | ContentArg T.Text
   deriving (Show, Eq, Generic)
 

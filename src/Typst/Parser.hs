@@ -90,7 +90,6 @@ ignoreCommandsParser = do
       ]
   return $ Just (MalformedFunction (T.stripEnd rawText))
 
-
 headingParser :: Parser (Maybe BookNode)
 headingParser = do
   equals <- takeWhile1P (Just "Heading Level") (== '=')
@@ -185,7 +184,7 @@ anyArgParser =
   choice
     [ try (Just <$> namedStringArgParser), -- Erkennt Key: "String" -> behält "..."
       try (Just <$> namedRawArgParser), -- Erkennt Key: 0mm / true -> ohne "..."
-      skipArg
+      positionalArgParser -- Erkennt <label>, 1em, true usw. -> behält sie als PositionalArg
     ]
   where
     identParser = takeWhile1P (Just "Arg Key") (\c -> c `elem` (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['-', '_']))
@@ -196,7 +195,6 @@ anyArgParser =
       _ <- char '"'
       val <- takeWhileP (Just "String Content") (/= '"')
       _ <- char '"'
-      -- Speichert den Wert inklusive Anführungszeichen ab:
       return $ NamedArg key ("\"" <> val <> "\"")
 
     namedRawArgParser = do
@@ -204,6 +202,14 @@ anyArgParser =
       _ <- hspace >> char ':' >> hspace
       val <- takeWhile1P (Just "Raw Value") (`notElem` [',', ')'])
       return $ NamedArg key (T.strip val)
+
+    positionalArgParser = do
+      val <- takeWhileP (Just "Positional Argument") (`notElem` [',', ')'])
+      let stripped = T.strip val
+      return $
+        if T.null stripped
+          then Nothing
+          else Just (PositionalArg stripped)
 
 namedStringArgParser :: Parser TypstArg
 namedStringArgParser = do
@@ -266,11 +272,12 @@ cleanInlineSpacing input
 -- Erkennt flache und verpackte Outlines vollständig und reicht sie 1:1 durch
 outlineFilterParser :: Parser (Maybe BookNode)
 outlineFilterParser = do
-  (rawText, _) <- match $
-    choice
-      [ try skipPadWithOutline,
-        try skipFlatOutline
-      ]
+  (rawText, _) <-
+    match $
+      choice
+        [ try skipPadWithOutline,
+          try skipFlatOutline
+        ]
   return $ Just (MalformedFunction (T.stripEnd rawText))
   where
     -- Fall 1: #outline(...) flach in der Source

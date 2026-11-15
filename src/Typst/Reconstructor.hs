@@ -131,7 +131,8 @@ reconstructSingleNode node transMap hideSet currentId = case node of
           Just lbl -> labelToPropKey lbl
           Nothing -> T.pack (show currentId)
 
-        isOptional = name `S.member` hideSet
+        hasContentArg = not (null [() | ContentArg _ <- args])
+        isOptional = (name `S.member` hideSet) || not hasContentArg
         nextId = if isJust effectiveLabel || isOptional then currentId else currentId + 1
      in if isOptional
           then
@@ -140,20 +141,20 @@ reconstructSingleNode node transMap hideSet currentId = case node of
             let lookupKey = "func_" <> name <> "_" <> idBase <> "_arg"
                 mTextArg = M.lookup lookupKey transMap
 
-                mTranslatedLabel = M.lookup ("func_" <> name <> "_" <> idBase <> "_label") transMap
-                mTranslatedTitle = M.lookup ("func_" <> name <> "_" <> idBase <> "_title") transMap
-
+                -- NEU: Dynamisches Ersetzen für alle benannten String-Argumente
                 updatedNamedArgs =
                   map
                     ( \(k, v) ->
-                        case k of
-                          "label" -> case mTranslatedLabel of
-                            Just trInlines -> (k, "\"" <> T.dropAround (== '"') (printInlines trInlines) <> "\"")
-                            Nothing -> (k, v)
-                          "title" -> case mTranslatedTitle of
-                            Just trInlines -> (k, "\"" <> T.dropAround (== '"') (printInlines trInlines) <> "\"")
-                            Nothing -> (k, v)
-                          _ -> (k, v)
+                        let newKey = "func_" <> name <> "_" <> idBase <> "_arg_" <> k
+                            legacyKey = "func_" <> name <> "_" <> idBase <> "_" <> k
+                            mTrans = case M.lookup newKey transMap of
+                              Just res -> Just res
+                              Nothing -> M.lookup legacyKey transMap
+                         in case mTrans of
+                              Just trInlines ->
+                                let cleanTranslated = T.dropAround (== '"') (printInlines trInlines)
+                                 in (k, "\"" <> cleanTranslated <> "\"")
+                              Nothing -> (k, v)
                     )
                     [(k, v) | NamedArg k v <- args]
 
@@ -174,7 +175,6 @@ reconstructSingleNode node transMap hideSet currentId = case node of
                   Just l -> " <" <> cleanLabelForKey l <> ">"
                   Nothing -> ""
              in ("#" <> name <> parensContent <> "[" <> finalContentText <> "]" <> suffix, nextId)
-
   MalformedFunction txt -> (txt, currentId)
 
 -- | Hilfsfunktion: Wandelt den Inline-AST wieder in natives Typst um
@@ -196,15 +196,24 @@ labelToPropKey lbl = T.replace ":" "_" (cleanLabelForKey lbl)
 -- | Rekonstruiert eine versteckte Funktion exakt im russischen Originalzustand.
 printOriginalFunction :: T.Text -> [TypstArg] -> Maybe T.Text -> T.Text
 printOriginalFunction name args mLabel =
-  let namedArgs = [(k, v) | NamedArg k v <- args]
+  let parenArgs =
+        [ case arg of
+            NamedArg k v ->
+              if "\"" `T.isPrefixOf` v
+                then k <> ": " <> v
+                else k <> ": \"" <> v <> "\""
+            PositionalArg v -> v
+            ContentArg _ -> ""
+        | arg <- args,
+          case arg of ContentArg _ -> False; _ -> True
+        ]
       contentArgs = [txt | ContentArg txt <- args]
-      formatNamed (k, v) = if "\"" `T.isPrefixOf` v then k <> ": " <> v else k <> ": \"" <> v <> "\""
       parensContent =
-        if null namedArgs
-          then ""
-          else "(" <> T.intercalate ", " (map formatNamed namedArgs) <> ")"
+        if null parenArgs
+          then if name `elem` ["cover-page", "pagebreak"] then "()" else ""
+          else "(" <> T.intercalate ", " parenArgs <> ")"
       bracketsContent = T.concat ["[" <> txt <> "]" | txt <- contentArgs]
       suffix = case mLabel of
-        Just lbl -> " " <> lbl
+        Just lbl -> " <" <> cleanLabelForKey lbl <> ">"
         Nothing -> ""
    in "#" <> name <> parensContent <> bracketsContent <> suffix
