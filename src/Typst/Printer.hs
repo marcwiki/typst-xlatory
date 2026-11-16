@@ -17,18 +17,18 @@ type PrintEnv = (Int, S.Set T.Text)
 
 type PrintState = State PrintEnv
 
-generateOmegaT :: TypstDoc -> T.Text
-generateOmegaT (TypstDoc nodes) =
-  let linesOfFile = evalState (mapM nodeToProperty nodes) (1, S.empty)
+generateOmegaT :: S.Set T.Text -> TypstDoc -> T.Text
+generateOmegaT ignoreArgsSet (TypstDoc nodes) =
+  let linesOfFile = evalState (mapM (nodeToProperty ignoreArgsSet) nodes) (1, S.empty)
    in T.unlines $ filter (not . T.null) linesOfFile
 
 extractFunctionsReport :: TypstDoc -> S.Set T.Text
 extractFunctionsReport (TypstDoc nodes) =
-  let (_, finalEnv) = runState (mapM nodeToProperty nodes) (1, S.empty)
+  let (_, finalEnv) = runState (mapM (nodeToProperty S.empty) nodes) (1, S.empty)
    in snd finalEnv
 
-nodeToProperty :: BookNode -> PrintState T.Text
-nodeToProperty node = case node of
+nodeToProperty :: S.Set T.Text -> BookNode -> State (Int, S.Set T.Text) T.Text
+nodeToProperty ignoreArgsSet node = case node of
   Paragraph inlines mLabel -> do
     idBase <- case mLabel of
       Just lbl -> return $ cleanLabelForKey lbl
@@ -66,8 +66,8 @@ nodeToProperty node = case node of
     let translatableNamedArgs =
           [ let cleanVal = T.strip (T.drop 1 (T.dropEnd 1 (T.strip v)))
              in T.concat ["func_", name, "_", idBase, "_arg_", k, "=", cleanVal]
-          | NamedArg k v <- args,
-            isTranslatableNamedArg (k, v)
+          | NamedArg k v <- args
+          , isTranslatableNamedArg ignoreArgsSet (k, v) -- <-- ignoreArgsSet hier übergeben
           ]
 
     -- 2. Hauptinhalt ([...]) wie bisher
@@ -164,13 +164,16 @@ normalizeKeepParagraphs txt =
       cleanBlocks = map (T.unwords . T.words) blocks
    in T.intercalate "\n\n" (filter (not . T.null) cleanBlocks)
 
--- Hilfsfunktion: Prüft, ob ein NamedArg übersetzbaren Text enthält
-isTranslatableNamedArg :: (T.Text, T.Text) -> Bool
-isTranslatableNamedArg (k, v) =
+-- Standard-Fallback, falls in der YAML-Datei kein ignore_named_args definiert ist
+defaultIgnoredNamedArgs :: S.Set T.Text
+defaultIgnoredNamedArgs =
+  S.fromList ["font", "style", "weight", "lang", "region", "fill", "stroke", "align"]
+
+-- Prüft anhand des übergebenen Sets, ob ein NamedArg übersetzbar ist
+isTranslatableNamedArg :: S.Set T.Text -> (T.Text, T.Text) -> Bool
+isTranslatableNamedArg ignoredKeys (k, v) =
   let stripped = T.strip v
-      -- Technische String-Parameter, die nie übersetzt werden sollen:
-      ignoredKeys = ["font", "style", "weight", "lang", "region", "fill", "stroke", "align"]
       isQuoted = "\"" `T.isPrefixOf` stripped && "\"" `T.isSuffixOf` stripped && T.length stripped >= 2
       inner = T.drop 1 (T.dropEnd 1 stripped)
       isHexColor = "#" `T.isPrefixOf` inner
-   in (k `notElem` ignoredKeys) && isQuoted && not isHexColor && not (T.null (T.strip inner))
+   in (k `S.notMember` ignoredKeys) && isQuoted && not isHexColor && not (T.null (T.strip inner))

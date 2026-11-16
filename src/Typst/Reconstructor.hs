@@ -11,6 +11,7 @@ import Data.Maybe (isJust)
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import Data.List (find, isPrefixOf)
 import System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
 import System.FilePath (replaceExtension, takeBaseName, takeExtension, (</>))
 import Text.Megaparsec (errorBundlePretty, parse)
@@ -20,41 +21,40 @@ import Typst.AST (BookNode (..), TypstArg (..), TypstDoc (..), TypstInline (..))
 import Typst.ImporterParser (TranslatedProperty (..), parsePropertiesFile)
 import Typst.Parser (parseTypst)
 
--- | Startet den Re-Import und reicht das Set der versteckten Funktionen weiter
-startImportPipeline :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> IO ()
-startImportPipeline sourceDir omegaTargetDir deDir hideSet = do
+-- | Startet den Re-Import und reicht die Sets weiter
+startImportPipeline :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> S.Set T.Text -> IO ()
+startImportPipeline sourceDir omegaTargetDir deDir hideSet ignoreArgsSet = do
   createDirectoryIfMissing True deDir
   allFiles <- listDirectory sourceDir
   let typstFiles = filter (\f -> takeExtension f == ".typ") allFiles
+  traverse_ (importSingleFile sourceDir omegaTargetDir deDir hideSet ignoreArgsSet) typstFiles
+  putStrLn "[SUCCESS] Import erfolgreich abgeschlossen! Typst-Dateien wurden generiert."
 
-  -- FIX: 'hideSet' hier explizit mit in die Klammern für importSingleFile geben!
-  traverse_ (importSingleFile sourceDir omegaTargetDir deDir hideSet) typstFiles
-  putStrLn "[SUCCESS] Import erfolgreich abgeschlossen! Deutsche Typst-Dateien wurden generiert."
-
-importSingleFile :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> FilePath -> IO ()
-importSingleFile sourceDir transDir targetDir hideSet file = do
+importSingleFile :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> S.Set T.Text -> FilePath -> IO ()
+importSingleFile sourceDir transDir targetDir hideSet ignoreArgsSet file = do
   let origPath = sourceDir </> file
       baseName = takeBaseName file
-      propPath = transDir </> (baseName ++ "_de_DE.properties")
       destPath = targetDir </> file
 
-  propExists <- doesFileExist propPath
-  if not propExists
-    then do
-      let altPropPath1 = transDir </> (file ++ "_de_DE.properties")
-          altPropPath2 = transDir </> replaceExtension file ".properties"
-      c1 <- doesFileExist altPropPath1
-      c2 <- doesFileExist altPropPath2
-      if c1
-        then proceedWithImport origPath altPropPath1 destPath hideSet
-        else
-          if c2
-            then proceedWithImport origPath altPropPath2 destPath hideSet
-            else putStrLn $ "[WARN] Keine Übersetzung gefunden für: " ++ file
-    else proceedWithImport origPath propPath destPath hideSet
+  transFiles <- listDirectory transDir
+  let mMatchedProp =
+        find
+          ( \f ->
+              takeExtension f == ".properties"
+                && ( f == replaceExtension file ".properties"
+                       || (baseName ++ "_") `isPrefixOf` f
+                       || (file ++ "_") `isPrefixOf` f
+                   )
+          )
+          transFiles
 
-proceedWithImport :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> IO ()
-proceedWithImport origPath propPath destPath hideSet = do
+  case mMatchedProp of
+    Just propFile -> proceedWithImport origPath (transDir </> propFile) destPath hideSet ignoreArgsSet
+    Nothing -> putStrLn $ "[WARN] Keine Übersetzung gefunden für: " ++ file
+
+
+proceedWithImport :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> S.Set T.Text -> IO ()
+proceedWithImport origPath propPath destPath hideSet ignoreArgsSet = do
   origContent <- TIO.readFile origPath
   propContent <- TIO.readFile propPath
 
@@ -69,21 +69,22 @@ proceedWithImport origPath propPath destPath hideSet = do
         Right props -> M.fromList [(propKey p, propValue p) | p <- props]
 
   -- 3. Rekonstruktion ausführen
-  let (reconstructedNodes, _) = runReconstruction originalAST translationMap hideSet 1
+  let (reconstructedNodes, _) = runReconstruction originalAST translationMap hideSet ignoreArgsSet 1
 
   -- 4. Speichern
   TIO.writeFile destPath (T.intercalate "\n\n" reconstructedNodes)
 
-runReconstruction :: [BookNode] -> M.Map T.Text [TypstInline] -> S.Set T.Text -> Int -> ([T.Text], Int)
-runReconstruction [] _ _ currentId = ([], currentId)
-runReconstruction (node : nodes) transMap hideSet currentId =
-  let (printedNode, nextId) = reconstructSingleNode node transMap hideSet currentId
-      (restLines, finalId) = runReconstruction nodes transMap hideSet nextId
-   in (printedNode : restLines, finalId)
+runReconstruction :: [BookNode] -> M.Map T.Text [TypstInline] -> S.Set T.Text -> S.Set T.Text -> Int -> ([T.Text], Int)
+runReconstruction [] _ _ _ currentId = ([], currentId)
+runReconstruction (node : rest) transMap hideSet ignoreArgsSet currentId =
+  let (txt, nextId) = reconstructSingleNode node transMap hideSet ignoreArgsSet currentId
+      (restTxts, finalId) = runReconstruction rest transMap hideSet ignoreArgsSet nextId
+   in (txt : restTxts, finalId)
 
 -- | Übersetzt und rekonstruiert eine einzelne Node
-reconstructSingleNode :: BookNode -> M.Map T.Text [TypstInline] -> S.Set T.Text -> Int -> (T.Text, Int)
-reconstructSingleNode node transMap hideSet currentId = case node of
+reconstructSingleNode :: BookNode -> M.Map T.Text [TypstInline] -> S.Set T.Text -> S.Set T.Text -> Int -> (T.Text, Int)
+reconstructSingleNode node transMap hideSet ignoreArgsSet currentId = case node of
+
   Paragraph _ mLabel ->
     let idBase = case mLabel of
           Just lbl -> labelToPropKey lbl
@@ -145,16 +146,19 @@ reconstructSingleNode node transMap hideSet currentId = case node of
                 updatedNamedArgs =
                   map
                     ( \(k, v) ->
-                        let newKey = "func_" <> name <> "_" <> idBase <> "_arg_" <> k
-                            legacyKey = "func_" <> name <> "_" <> idBase <> "_" <> k
-                            mTrans = case M.lookup newKey transMap of
-                              Just res -> Just res
-                              Nothing -> M.lookup legacyKey transMap
-                         in case mTrans of
-                              Just trInlines ->
-                                let cleanTranslated = T.dropAround (== '"') (printInlines trInlines)
-                                 in (k, "\"" <> cleanTranslated <> "\"")
-                              Nothing -> (k, v)
+                        if k `S.member` ignoreArgsSet
+                          then (k, v)
+                          else
+                            let newKey = "func_" <> name <> "_" <> idBase <> "_arg_" <> k
+                                legacyKey = "func_" <> name <> "_" <> idBase <> "_" <> k
+                                mTrans = case M.lookup newKey transMap of
+                                  Just res -> Just res
+                                  Nothing -> M.lookup legacyKey transMap
+                             in case mTrans of
+                                  Just trInlines ->
+                                    let cleanTranslated = T.dropAround (== '"') (printInlines trInlines)
+                                     in (k, "\"" <> cleanTranslated <> "\"")
+                                  Nothing -> (k, v)
                     )
                     [(k, v) | NamedArg k v <- args]
 
