@@ -1,0 +1,32 @@
+# docs/docs.yaml - Konfigurationsdatei für die mehrsprachige Gebrauchsanleitung
+
+project:
+  source_dir: "docs/src_de"
+  i18n_source_dir: "docs/i18n/source"
+
+targets:
+  - lang: "en"
+    i18n_target_dir: "docs/i18n/target_en"
+    output_dir: "docs/out_en"
+  - lang: "ru"
+    i18n_target_dir: "docs/i18n/target_ru"
+    output_dir: "docs/out_ru"
+
+hide_functions:
+  - outline
+  - pagebreak
+  - include
+  - v
+  - h
+  - link
+  - raw
+
+ignore_named_args:
+  - font
+  - style
+  - weight
+  - lang
+  - region
+  - fill
+  - stroke
+  - align

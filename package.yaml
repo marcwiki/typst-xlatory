@@ -1,6 +1,6 @@
-name:                typst-json-printer
+name:                typst-xlatory
 version:             0.1.0.0
-github:              "marcg/typst-json-printer"
+github:              "marcwiki/typst-xlatory"
 license:             GPL-3.0-or-later
 author:              "Marc"
 copyright:           "2026 Marc"
@@ -28,7 +28,7 @@ library:
 
 # Der I/O-Loop und CLI-Startpunkt lebt im Executable
 executables:
-  typst-json-printer-exe:
+  typst-xlatory:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -36,4 +36,4 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - typst-json-printer # Importiert die eigene Library von oben
+      - typst-xlatory # Importiert die eigene Library von oben
