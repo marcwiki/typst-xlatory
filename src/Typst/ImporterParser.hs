@@ -75,7 +75,6 @@ propertyLineParser = do
       return ()
 
 -- | Der spezifische Parser für den Inhalt eines OmegaT-Werts
--- | Der spezifische Parser für den Inhalt eines OmegaT-Werts
 parseOmegaTInline :: Parser [TypstInline]
 parseOmegaTInline =
   many

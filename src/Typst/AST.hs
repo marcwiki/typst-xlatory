@@ -9,7 +9,7 @@ Module      : Typst.AST
 Description : Core Abstract Syntax Tree (AST) data types and label utilities.
 License     : GPL-3.0-or-later
 
-Defines the intermediate representation ('TypstDoc') used across the entire
+Defines the intermediate representation (t'TypstDoc') used across the entire
 extraction and reconstruction pipeline, along with helper functions for
 extracting and normalizing explicit Typst labels.
 -}
@@ -39,6 +39,7 @@ data TypstInline
   | InlineBold [TypstInline]  -- ^ Bold text wrapped in asterisks @*...*@.
   deriving (Show, Eq, Generic)
 
+-- | Represents a top-level structural node within a parsed Typst document.
 data BookNode
   = Paragraph [TypstInline] (Maybe T.Text) 
     -- ^ Translatable body paragraph with inline elements and optional label ID.

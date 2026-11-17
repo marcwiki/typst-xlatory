@@ -6,7 +6,7 @@ Description : Reconstructs valid Typst source files from original ASTs and trans
 License     : GPL-3.0-or-later
 
 Merges the structural layout and non-translatable directives of the original
-'TypstDoc' with translated text segments from CAT tools to generate ready-to-compile
+t'TypstDoc' with translated text segments from CAT tools to generate ready-to-compile
 target language @.typ@ files.
 -}
 module Typst.Reconstructor
