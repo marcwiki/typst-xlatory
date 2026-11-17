@@ -5,22 +5,18 @@
 #import "constants.typ": *
 #import "theme.typ": *
 #import "page-setup.typ": (
-  apply-first-page-layout,
-  apply-title-page-layout,
-  cover-page,
+  layout-cover,
+  layout-frontmatter,
+  layout-title-page,
   make-footer,
   make-header,
 )
-#import "elements.typ": apply-base-styles, chapter-intro
+#import "elements.typ": apply-base-styles, intro-cursive
 #import "headings.typ": apply-heading-styles
-#import "outline.typ": apply-outline-styles, comment-sub-outline
+#import "outline.typ": apply-outline-styles, layout-sub-toc
 
 /// Wendet das komplette Buch-Layout auf ein Dokument an.
-///
-/// - lang (str): Sprachcode für Silbentrennung und Anführungszeichen (z. B. "de", "en", "ru").
-/// - book-title (str): Buchtitel für die lebenden Kolumnentitel auf geraden Seiten.
-/// - body (content): Der gesamte Dokumentinhalt.
-#let book-style(
+#let book-template(
   lang: "de",
   book-title: "typst-xlatory",
   body,

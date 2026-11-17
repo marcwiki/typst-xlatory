@@ -3,9 +3,7 @@
 // Seitenlayouts für Titelei, Vorwort sowie lebende Kolumnentitel
 
 /// Zeigt ein vollflächiges Cover-Bild auf der ersten Seite ohne Ränder.
-///
-/// - image-path (str): Relativer Pfad zur Bilddatei (aus Sicht der .typ-Datei).
-#let cover-page(image-path: "../images/cover.jpeg") = {
+#let layout-cover(image-path: "../images/cover.jpeg") = {
   page(
     paper: "a5",
     margin: 0cm,
@@ -17,12 +15,11 @@
       height: 100%,
       fit: "cover",
     ),
-  )[]
+  )
 }
 
-
 /// Layout für Schmutztitel oder Impressumsseiten ohne Kopf-/Fußzeile.
-#let apply-first-page-layout(body) = {
+#let layout-frontmatter(body) = {
   set page(
     paper: "a5",
     margin: (right: 20mm, left: 20mm, top: 15mm, bottom: 15mm),
@@ -39,7 +36,7 @@
 }
 
 /// Layout für die Haupttitelseite mit breitem rechtem Weißraum.
-#let apply-title-page-layout(body) = {
+#let layout-title-page(body) = {
   set page(
     paper: "a5",
     margin: (right: 50mm),

@@ -13,14 +13,24 @@ targets:
     output_dir: "docs/out_ru"
 
 hide_functions:
+  # Typst-Standardbefehle
   - outline
   - pagebreak
   - include
+  - raw
+  - show
   - v
   - h
   - link
-  - raw
-  - omegat-regex-box
+
+  # Eigene Layout-Makros aus docs/lib/
+  - layout-cover
+  - layout-frontmatter
+  - layout-title-page
+  - layout-body-text
+  - layout-sub-toc
+  - layout-regex-box
+
 
 ignore_named_args:
   - font

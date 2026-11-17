@@ -33,7 +33,8 @@ extractLabel :: T.Text -> (T.Text, Maybe T.Text)
 extractLabel s =
   let trimmed = T.strip s
       (beforeGreater, afterGreater) = T.breakOnEnd ">" trimmed
-   in if T.null beforeGreater
+   in -- Ein echtes Typst-Label steht IMMER ganz am Ende (nach '>' darf nichts mehr folgen!)
+      if T.null beforeGreater || not (T.null (T.strip afterGreater))
         then (s, Nothing)
         else
           let targetPart = T.dropEnd 1 beforeGreater
@@ -41,8 +42,12 @@ extractLabel s =
            in if T.null leftover && not ("<" `T.isPrefixOf` targetPart)
                 then (s, Nothing)
                 else
-                  let cleanLabel = "<" <> labelContent <> ">"
-                      prefix = T.stripEnd (T.dropEnd 1 leftover)
-                      suffix = T.strip afterGreater
-                      combinedText = T.stripEnd (prefix <> suffix)
-                   in (combinedText, Just cleanLabel)
+                  let prefix = T.stripEnd (T.dropEnd 1 leftover)
+                      backtickCount = T.count "`" prefix
+                      validLabelChars =
+                        not (T.null labelContent)
+                          && T.all (\c -> c `notElem` [' ', '\n', '\t', '<', '>', '`']) labelContent
+                   in if even backtickCount && validLabelChars
+                        then (prefix, Just ("<" <> labelContent <> ">"))
+                        else (s, Nothing)
+

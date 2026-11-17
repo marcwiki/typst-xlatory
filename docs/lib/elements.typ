@@ -10,9 +10,6 @@
 )
 
 /// Wendet die globalen Typografie- und Absatzregeln auf das Dokument an.
-///
-/// - lang (str): Sprachcode für Silbentrennung und Anführungszeichen (z. B. "de", "en", "ru").
-/// - body (content): Der nachfolgende Dokumenteninhalt.
 #let apply-base-styles(lang: "de", body) = {
   set text(
     font: font-serif,
@@ -31,9 +28,7 @@
 
 /// Formatiert einen kalligrafischen Einleitungstext für Kapitelanfänge
 /// bündig auf dem 20-mm-Raster.
-///
-/// - body (content): Der einleitende Absatztext.
-#let chapter-intro(body) = {
+#let intro-cursive(body) = {
   block(
     width: 100%,
     inset: (

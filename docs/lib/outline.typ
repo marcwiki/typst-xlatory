@@ -6,10 +6,7 @@
 
 /// Erzeugt ein lokales Unterverzeichnis für die Ebenen 3 bis 5
 /// zwischen zwei definierten Labels im Dokument.
-///
-/// - after-label (label): Start-Label des Bereichs.
-/// - before-label (label): End-Label des Bereichs.
-#let comment-sub-outline(after-label, before-label) = {
+#let layout-sub-toc(after-label, before-label) = {
   pad(left: 20mm - 1em, right: -15mm, top: 0mm)[
     #set par(leading: 0.3em)
     #show outline.entry: set block(above: 0.8em, below: 0.8em)
@@ -25,6 +22,7 @@
     )
   ]
 }
+
 
 /// Hebt den ersten Buchstaben eines Teaser-Labels im Inhaltsverzeichnis hervor.
 #let outline-initial(wort) = {
@@ -110,7 +108,7 @@
       it
     } else {
       let level = it.element.level
-      let dynamic-left-inset = if level == 2 { 1.1em } else if level > 2 {
+      let dynamic-left-inset = if level == 2 { 0.5em } else if level > 2 {
         1.1em + (level - 3) * 1.5em
       } else { 0.5em }
 
@@ -122,26 +120,65 @@
           width: 100%,
           breakable: false,
           {
+            // 1. Formatierung der Einträge im Inhaltsverzeichnis
             if it.level == 1 {
               block(
                 width: 100%,
-                above: 1.4em,
-                below: 0.8em,
-                align(
-                  left,
-                  block(
-                    width: 100%,
-                    inset: (left: 1.1em, right: 3em),
-                    it.body(),
-                  ),
+                above: 1.2em,
+                below: 0.4em,
+                inset: (left: 0.5em, right: 0.5em, bottom: 0.3em),
+                stroke: (bottom: 0.4pt + gray.lighten(55%)),
+                link(
+                  it.element.location(),
+                  {
+                    set text(weight: "bold", size: 1.05em)
+                    set par(
+                      first-line-indent: 0mm,
+                      leading: 0.35em,
+                      justify: false,
+                    )
+                    grid(
+                      columns: (1.8em, 1fr, auto),
+                      column-gutter: 0.4em,
+                      align(left)[#it.prefix()],
+                      align(left)[#it.body()],
+                      align(right + bottom)[#it.page()],
+                    )
+                  },
                 ),
               )
             } else if it.level == 2 {
-              it
+              block(
+                width: 100%,
+                above: 0.35em,
+                below: 0.35em,
+                inset: (left: 0.5em, right: 0.5em),
+                link(
+                  it.element.location(),
+                  {
+                    set text(size: 0.95em)
+                    set par(
+                      first-line-indent: 0mm,
+                      leading: 0.35em,
+                      justify: false,
+                    )
+                    grid(
+                      columns: (2.4em, 1fr, auto),
+                      column-gutter: 0.4em,
+                      align(left)[#it.prefix()],
+                      align(left)[
+                        #it.body()
+                        #box(width: 1fr, repeat[#text(fill: gray)[.]])
+                      ],
+                      align(right + bottom)[#it.page()],
+                    )
+                  },
+                ),
+              )
             } else {
               block(
                 width: 100%,
-                inset: (left: dynamic-left-inset, right: 3em),
+                inset: (left: dynamic-left-inset, right: 0.5em),
                 link(
                   it.element.location(),
                   it.element.body + box(width: 1fr, it.fill) + it.page(),
@@ -160,7 +197,7 @@
                   above: 0.35em,
                   below: 0.2em,
                   breakable: false,
-                  pad(left: 6mm)[
+                  pad(left: 8mm)[
                     #set text(size: 0.82em, style: "italic")
                     #set par(
                       leading: 0.42em,
