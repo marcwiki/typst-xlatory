@@ -202,22 +202,21 @@ printOriginalFunction :: T.Text -> [TypstArg] -> Maybe T.Text -> T.Text
 printOriginalFunction name args mLabel =
   let parenArgs =
         [ case arg of
-            NamedArg k v ->
-              if "\"" `T.isPrefixOf` v
-                then k <> ": " <> v
-                else k <> ": \"" <> v <> "\""
+            NamedArg k v -> k <> ": " <> v
             PositionalArg v -> v
             ContentArg _ -> ""
-        | arg <- args,
-          case arg of ContentArg _ -> False; _ -> True
+        | arg <- args
+        , case arg of ContentArg _ -> False; _ -> True
         ]
       contentArgs = [txt | ContentArg txt <- args]
       parensContent =
         if null parenArgs
-          then if name `elem` ["cover-page", "pagebreak"] then "()" else ""
+          then if null contentArgs then "()" else ""
           else "(" <> T.intercalate ", " parenArgs <> ")"
+
       bracketsContent = T.concat ["[" <> txt <> "]" | txt <- contentArgs]
       suffix = case mLabel of
         Just lbl -> " <" <> cleanLabelForKey lbl <> ">"
         Nothing -> ""
    in "#" <> name <> parensContent <> bracketsContent <> suffix
+

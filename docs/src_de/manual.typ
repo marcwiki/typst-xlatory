@@ -2,6 +2,7 @@
 // Import deiner ausgelagerten Makros aus docs/lib/
 // Passe den Dateinamen ggf. an deine Library-Datei an:
 //#import "../lib/template.typ": *
+#import "../lib/omegat.typ": omegat-regex-box
 
 = Eine Umgebung zur Erstellung und Übersetzung von PDF Dokumenten<h1_id_1>
 
@@ -163,6 +164,7 @@ Das gesamte Verhalten der Export- und Import-Pipeline wird über eine zentrale Y
 Unter `project` werden die gemeinsamen Ausgangsverzeichnisse des Projekts festgelegt: <p:cfg-proj-1>
 
 - *`source_dir`*: Pfad zum Verzeichnis mit den Typst-Quelldateien in der Originalsprache. <p:cfg-proj-list-1>
+
 - *`i18n_source_dir`*: Zielordner, in den die generierten `.properties`-Dateien für das CAT-Tool geschrieben werden. <p:cfg-proj-list-2>
 
 == Bereich targets <h2:cfg-targets>
@@ -170,7 +172,9 @@ Unter `project` werden die gemeinsamen Ausgangsverzeichnisse des Projekts festge
 Unter `targets` lässt sich eine beliebige Anzahl an Zielsprachen definieren. Beim Aufruf mit `--import` verarbeitet das Werkzeug alle aufgeführten Sprachen in einem einzigen Durchgang: <p:cfg-tgt-1>
 
 - *`lang`*: Kurzbezeichnung der Zielsprache zur Protokollierung auf der Konsole (zum Beispiel `en` oder `ru`). <p:cfg-tgt-list-1>
+
 - *`i18n_target_dir`*: Verzeichnis, in dem das CAT-Tool die übersetzten `.properties`-Dateien dieser Sprache ablegt. <p:cfg-tgt-list-2>
+
 - *`output_dir`*: Zielverzeichnis für die fertig rekonstruierten Typst-Dateien der jeweiligen Sprache. <p:cfg-tgt-list-3>
 
 == Bereich hide_functions <h2:cfg-hide>
@@ -194,8 +198,10 @@ TODO: 1 bis 2 eigene Funktionen aus docs/lib einfügen, zum Beispiel den Fazit-B
 In der täglichen Arbeit mit wachsenden Buchmanuskripten helfen folgende Hinweise, typische Stolpersteine schnell zu lösen: <p:ts-1>
 
 - *Nachträgliche Korrekturen im Original*: Ändert sich ein Satz im deutschen Ausgangstext, genügt ein erneuter Export. Im CAT-Tool bleiben alle unveränderten Sätze dank des Translation Memories als exakte Treffer erhalten, sodass nur der geänderte Satz neu übersetzt werden muss. <p:ts-list-1>
+
 - *Fehlende Übersetzung im Zieldokument*: Erscheint im rekonstruierten Typst-Dokument der Platzhalter `DE_TRANSLATION_MISSING`, wurde der entsprechende Eintrag im CAT-Tool noch nicht übersetzt oder die Zieldatei nach der Übersetzung noch nicht neu geschrieben. <p:ts-list-2>
-- *Sonderzeichen und Formatierungen*: Inline-Formatierungen wie `*fett*`, `_kursiv_` oder `#link(...)` werden vom Parser erkannt und als geschützte Tags an das CAT-Tool übergeben. Achte beim Übersetzen darauf, diese Tags an den passenden Stellen im Zielsatz beizubehalten. <p:ts-list-3>
+
+- *Sonderzeichen und Formatierungen*: Inline-Formatierungen wie `*bold*`, `_italic_` oder Querverweise (`#link(...)`) werden vom Parser erkannt und als geschützte Tags an das CAT-Tool übergeben. Achte beim Übersetzen darauf, diese Tags an den passenden Stellen im Zielsatz beizubehalten. <p:ts-list-3>
 
 == Geschützte Tags in OmegaT einrichten <h2:omegat-tags>
 
@@ -203,11 +209,10 @@ Damit Inline-Formatierungen (`<b>`, `</b>`), Code-Schnipsel in Backticks (wie `.
 
 Öffne dazu in OmegaT das Menü *Optionen* -> *Einstellungen* -> *Tag-Verarbeitung* und trage folgenden regulären Ausdruck in das Feld *Regulärer Ausdruck für benutzerdefinierte Tags* ein: <p:ot-tags-2>
 
-#raw(
-  block: true,
-  "(?:`[^`]+`|</?[a-zA-Z0-9]+>|#link\\(<[^>]+>\\)\\s*\\[[^\\]]*\\]|#chapter-extract\\[|#initial\\[|<p_id_[^>]+>\\]|\\])",
-) <raw:ot-regex>
+#omegat-regex-box()
 
 Achte beim Einfügen darauf, dass sich am Anfang und am Ende der Zeile kein versehentliches Leerzeichen befindet, da dieses sonst als leeres Tag gewertet wird. Lade das Projekt anschliessend mit der Taste `F5` neu, um die neuen Tags sofort sichtbar zu machen. <p:ot-tags-3>
+
+Wähle auch die Checkbox "Übersetzte Tags dürfen anders angeordnet sein".<p:ot-tags-4>
 
 

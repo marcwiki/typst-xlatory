@@ -20,6 +20,7 @@ hide_functions:
   - h
   - link
   - raw
+  - omegat-regex-box
 
 ignore_named_args:
   - font

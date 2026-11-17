@@ -184,10 +184,23 @@ anyArgParser =
   choice
     [ try (Just <$> namedStringArgParser), -- Erkennt Key: "String" -> behält "..."
       try (Just <$> namedRawArgParser), -- Erkennt Key: 0mm / true -> ohne "..."
+      try positionalStringArgParser, -- NEU: "String mit (Klammern), Kommas und \"Quotes\""
       positionalArgParser -- Erkennt <label>, 1em, true usw. -> behält sie als PositionalArg
     ]
   where
     identParser = takeWhile1P (Just "Arg Key") (\c -> c `elem` (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['-', '_']))
+
+    -- Liest einen String inklusive escaped Zeichen (\") und innerer Klammern sauber bis zum schliessenden "
+    quotedStringLiteral = do
+      _ <- char '"'
+      chunks <- many (try escapedChar <|> (T.singleton <$> noneOf ['"']))
+      _ <- char '"'
+      return $ "\"" <> T.concat chunks <> "\""
+      where
+        escapedChar = do
+          _ <- char '\\'
+          c <- anySingle
+          return $ T.pack ['\\', c]
 
     namedStringArgParser = do
       key <- identParser
@@ -202,6 +215,10 @@ anyArgParser =
       _ <- hspace >> char ':' >> hspace
       val <- takeWhile1P (Just "Raw Value") (`notElem` [',', ')'])
       return $ NamedArg key (T.strip val)
+
+    positionalStringArgParser = do
+      val <- quotedStringLiteral
+      return $ Just (PositionalArg val)
 
     positionalArgParser = do
       val <- takeWhileP (Just "Positional Argument") (`notElem` [',', ')'])
@@ -342,26 +359,32 @@ boldParser = try $ do
 -- =====================================================================
 -- KORRIGIERTER & VEREINFACHTER INLINE PARSER (In src/Typst/Parser.hs)
 -- =====================================================================
-
 inlineParser :: Parser TypstInline
 inlineParser =
   choice
-    [ linkParser,
-      boldParser,
+    [ try inlineCodeParser, -- 1. Höchste Priorität: Alles in `...` als PlainText schützen
+      try linkParser,       -- 2. Mit 'try', damit ein fehlgeschlagener Link den Absatz nicht abbricht
+      try boldParser,       -- 3. Ebenfalls mit 'try' absichern
       try singleNewlineParser,
       plainTextParser
     ]
   where
+    -- Liest `...` komplett als unveränderlichen PlainText ein
+    inlineCodeParser = do
+      _ <- char '`'
+      code <- takeWhile1P (Just "Inline Code") (\c -> c /= '`' && c /= '\n')
+      _ <- char '`'
+      return $ PlainText ("`" <> code <> "`")
+
     plainTextParser = do
-      -- HIER WURDE DIE REINIGUNG VOLLZOGEN: Kein 'notFollowedBy (string "<p_id_")' mehr nötig!
-      -- Das '<' ist wieder zu 100% im Fliesstext erlaubt.
-      txt <- takeWhile1P (Just "Plain Text") (\c -> c `notElem` ['\n', '#', '*'])
-      return $ PlainText txt
+      -- Falls ein einzelnes '#' oder '*' kein gültiger Link/Bold war, wird es hier als normales Zeichen gelesen
+      firstChar <- oneOf ['#', '*'] <|> satisfy (\c -> c `notElem` ['\n', '#', '*', '`'])
+      rest <- takeWhileP (Just "Plain Text") (\c -> c `notElem` ['\n', '#', '*', '`'])
+      return $ PlainText (T.cons firstChar rest)
 
     singleNewlineParser = do
       _ <- eol
       notFollowedBy eol
-      -- Blockiert nur echte Typst-Strukturbefehle mitten im Absatz
       notFollowedBy
         ( choice
             [ string "#import",
@@ -375,6 +398,7 @@ inlineParser =
             ]
         )
       return $ PlainText " "
+
 
 cleanLabelForKey :: T.Text -> T.Text
 cleanLabelForKey lbl = T.replace "<" "" (T.replace ">" "" lbl)

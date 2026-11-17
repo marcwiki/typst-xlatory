@@ -65,9 +65,25 @@ propertyLineParser = do
       return ()
 
 -- | Der spezifische Parser für den Inhalt eines OmegaT-Werts
+-- | Der spezifische Parser für den Inhalt eines OmegaT-Werts
 parseOmegaTInline :: Parser [TypstInline]
-parseOmegaTInline = many (choice [try omegatLinkParser, try omegatBoldParser, omegatTextParser])
+parseOmegaTInline =
+  many
+    ( choice
+        [ try omegatInlineCodeParser, -- 1. Höchste Priorität: Alles in `...` unverändert übernehmen
+          try omegatLinkParser,       -- 2. Echte Links: #link(<target>)[text]
+          try omegatBoldParser,       -- 3. Bold-Tags: <b>inhalt</b>
+          omegatTextParser            -- 4. Normaler Text (inkl. sicherem Fallback)
+        ]
+    )
   where
+    -- 0. Schützt Inline-Code in Backticks komplett vor Link-/Tag-Parsing
+    omegatInlineCodeParser = do
+      _ <- char '`'
+      code <- takeWhile1P (Just "Inline Code") (\c -> c /= '`' && c /= '\n')
+      _ <- char '`'
+      return $ PlainText ("`" <> code <> "`")
+
     -- 1. Erkennt Links: #link(<target>)[text] mit flexiblen Spaces
     omegatLinkParser = try $ do
       _ <- string "#link"
@@ -86,14 +102,17 @@ parseOmegaTInline = many (choice [try omegatLinkParser, try omegatBoldParser, om
     -- 2. Erkennt Bold-Tags: <b>inhalt</b>
     omegatBoldParser = try $ do
       _ <- string "<b>"
-      content <- many (notFollowedBy (string "</b>") >> choice [try omegatLinkParser, try omegatBoldParser, omegatTextParser])
+      content <-
+        many
+          ( notFollowedBy (string "</b>")
+              >> choice [try omegatInlineCodeParser, try omegatLinkParser, try omegatBoldParser, omegatTextParser]
+          )
       _ <- string "</b>"
       return $ InlineBold content
 
-    -- 3. Liest normalen Text, stoppt vor </b>, <...> oder #link, erlaubt aber #initial
+    -- 3. Liest normalen Text, stoppt nur vor schliessendem </b>
     omegatTextParser = do
       notFollowedBy (string "</b>")
-      notFollowedBy (string "#link")
       c <- anySingle
-      rest <- takeWhileP (Just "Plain Text") (\ch -> ch `notElem` ['<', '#'])
+      rest <- takeWhileP (Just "Plain Text") (\ch -> ch `notElem` ['<', '#', '`'])
       return $ PlainText (T.cons c rest)
