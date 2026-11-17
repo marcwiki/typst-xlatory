@@ -2,8 +2,8 @@ name:                typst-xlatory
 version:             0.1.0.0
 github:              "marcwiki/typst-xlatory"
 license:             GPL-3.0-or-later
-author:              "Marc"
-copyright:           "2026 Marc"
+author:              "Marc Günthardt"
+copyright:           "2026 Marc Günthardt"
 
 dependencies:
   - base >= 4.7 && < 5

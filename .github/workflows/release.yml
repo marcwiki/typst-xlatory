@@ -1,0 +1,87 @@
+name: Build and Release Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: typst-xlatory-linux-x86_64
+            ext: ""
+          - os: windows-latest
+            artifact_name: typst-xlatory-windows-x86_64
+            ext: ".exe"
+          - os: macos-latest
+            artifact_name: typst-xlatory-macos-arm64
+            ext: ""
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Haskell Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: latest
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml', 'package.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Install GHC and build binary
+        run: |
+          stack setup
+          stack build --copy-bins --local-bin-path ./release-bin
+
+      - name: Package binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a "dist/${{ matrix.artifact_name }}.zip" "./release-bin/typst-xlatory${{ matrix.ext }}" README.md
+          else
+            tar -czf "dist/${{ matrix.artifact_name }}.tar.gz" -C ./release-bin "typst-xlatory${{ matrix.ext }}" -C .. README.md
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/*
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/*

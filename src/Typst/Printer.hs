@@ -1,5 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{- |
+Module      : Typst.Printer
+Description : Exports a parsed 'TypstDoc' AST into Java .properties files for CAT tools.
+License     : GPL-3.0-or-later
+
+Serializes headings, paragraphs, and translatable macro arguments into
+key-value pairs compatible with OmegaT and other CAT tools, while filtering
+out non-translatable layout macros configured via @hide_functions@.
+-}
 module Typst.Printer
   ( generateOmegaT,
     extractFunctionsReport,
@@ -17,11 +26,20 @@ type PrintEnv = (Int, S.Set T.Text)
 
 type PrintState = State PrintEnv
 
+-- | Serializes a 'TypstDoc' AST into Java @.properties@ format for CAT tool translation.
+--
+-- Takes a set of named arguments to ignore (@ignoreArgsSet@) and the parsed
+-- 'TypstDoc', returning the UTF-8 @.properties@ content with deterministic,
+-- label-based keys.
 generateOmegaT :: S.Set T.Text -> TypstDoc -> T.Text
 generateOmegaT ignoreArgsSet (TypstDoc nodes) =
   let linesOfFile = evalState (mapM (nodeToProperty ignoreArgsSet) nodes) (1, S.empty)
    in T.unlines $ filter (not . T.null) linesOfFile
 
+-- | Collects all unique custom Typst macro names encountered in a 'TypstDoc'.
+--
+-- Runs the property traversal over all AST nodes and returns a 'S.Set' of
+-- discovered macro names, used to generate diagnostic export reports.
 extractFunctionsReport :: TypstDoc -> S.Set T.Text
 extractFunctionsReport (TypstDoc nodes) =
   let (_, finalEnv) = runState (mapM (nodeToProperty S.empty) nodes) (1, S.empty)

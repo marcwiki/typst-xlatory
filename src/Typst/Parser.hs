@@ -1,8 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{- |
+Module      : Typst.Parser
+Description : Megaparsec-based parser for translating Typst markup into a custom AST.
+License     : GPL-3.0-or-later
+
+Provides the Phase 1 parser that converts raw Typst source documents into a
+structured 'TypstDoc' abstract syntax tree. It separates translatable content
+(headings, paragraphs, inline formatting, and custom macro arguments) from
+non-translatable layout directives and preserves explicit Typst labels for
+lossless roundtrip reconstruction.
+-}
 module Typst.Parser
   ( parseTypst,
-    errorBundlePretty,
   )
 where
 
@@ -16,7 +26,11 @@ import Typst.AST (BookNode (..), TypstArg (..), TypstDoc (..), TypstInline (..),
 
 type Parser = Parsec Void T.Text
 
--- Haupt-Einstiegspunkt für Phase 1
+-- | Parses a raw Typst source text into a structured 'TypstDoc' AST.
+--
+-- Takes a source file name (used in Megaparsec error diagnostics) and the
+-- UTF-8 document text. Returns either a detailed 'ParseErrorBundle' on syntax
+-- failure or the parsed 'TypstDoc' on success.
 parseTypst :: String -> T.Text -> Either (ParseErrorBundle T.Text Void) TypstDoc
 parseTypst filename input = parse typstDocParser filename input
 

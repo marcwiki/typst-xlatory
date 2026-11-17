@@ -9,13 +9,14 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import Text.Megaparsec (errorBundlePretty)
 import Data.Yaml (FromJSON (..), decodeFileEither, withObject, (.:), (.:?))
 import GHC.Generics
 import System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
 import System.Environment (getArgs)
 import System.FilePath (replaceExtension, takeExtension, (</>))
 
-import Typst.Parser (errorBundlePretty, parseTypst)
+import Typst.Parser (parseTypst)
 import Typst.Printer (extractFunctionsReport, generateOmegaT)
 import qualified Typst.Reconstructor as Reconstructor
 

@@ -1,11 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{- |
+Module      : Typst.ImporterParser
+Description : Parses translated Java .properties files back into structured AST nodes.
+License     : GPL-3.0-or-later
+
+Reads key-value entries exported from CAT tools (such as OmegaT), reconstructs
+inline formatting (bold HTML tags, Typst links, and protected backtick code),
+and maps them back to their original structural identifiers.
+-}
 module Typst.ImporterParser
   ( TranslatedProperty (..),
     parsePropertiesFile,
     parseOmegaTInline,
   )
 where
+
 
 import qualified Data.Text as T
 import Data.Void (Void)
