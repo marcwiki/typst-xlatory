@@ -74,9 +74,8 @@
   text(size: 11pt)[#body]
 }
 
-/// Formatiert eine eingerückte Titel-Zusatzzeile auf der ersten Seite.
+/// Formatiert eine Titel-Zusatzzeile auf der ersten Seite.
 #let title-note(body) = {
-  h(20mm)
   text(
     style: "normal",
     font: std.font-serif,

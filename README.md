@@ -34,16 +34,19 @@ Translating large Typst projects by copying `.typ` files per language quickly tu
 
 ```text
 my-book/
-├── project.yaml          # Pipeline configuration
-├── lib/                  # Shared Typst templates and layout macros
-├── src_de/               # Source Typst files
-├── i18n/
-│   ├── source/           # Exported .properties (input for CAT tool)
-│   ├── target_en/        # Translated .properties (English)
-│   └── target_ru/        # Translated .properties (Russian)
-├── out_en/               # Reconstructed Typst files (English)
-└── out_ru/               # Reconstructed Typst files (Russian)
+├── docs/
+│   ├── project.yaml      # Pipeline configuration
+│   ├── lib/              # Shared Typst templates and layout macros
+│   ├── src_de/           # Source Typst files
+│   ├── i18n/
+│   │   ├── source/       # Exported .properties (input for CAT tool)
+│   │   ├── target_en/    # Translated .properties (English)
+│   │   └── target_ru/    # Translated .properties (Russian)
+│   ├── out_en/           # Reconstructed Typst files (English)
+│   └── out_ru/           # Reconstructed Typst files (Russian)
+└── pdf/                  # Compiled PDF outputs
 ```
+
 
 ### 2. Configuration (`project.yaml`)
 
@@ -84,17 +87,20 @@ ignore_named_args:
 
 ```bash
 # Step 1: Export Typst source files to .properties
-typst-xlatory --config project.yaml
+typst-xlatory --config docs/project.yaml
 
-# Step 2: Translate the files in i18n/source/ using your CAT tool
+# Step 2: Translate the files in docs/i18n/source/ using your CAT tool
 
 # Step 3: Reconstruct all target languages
-typst-xlatory --config project.yaml --import
+typst-xlatory --config docs/project.yaml --import
 
 # Step 4: Compile PDFs with Typst
-typst compile out_en/chapter1.typ
-typst compile out_ru/chapter1.typ
+mkdir -p pdf
+typst compile --root docs docs/src_de/manual.typ pdf/manual_de.pdf
+typst compile --root docs docs/out_en/manual.typ pdf/manual_en.pdf
+typst compile --root docs docs/out_ru/manual.typ pdf/manual_ru.pdf
 ```
+
 
 ---
 
@@ -119,11 +125,14 @@ stack run -- --config docs/docs.yaml --import
 
 ## Documentation & Live Example
 
+Pre-compiled PDF manuals (`manual_de.pdf`, `manual_en.pdf`, `manual_ru.pdf`) as well as pre-built binaries for Linux, Windows, and macOS are available on the [Releases](https://github.com) page.
+
 The `docs/` directory contains the full user manual—written in German (`docs/src_de/manual.typ`) and translated using this exact pipeline into English and Russian:
 
-- **Source & Templates**: `docs/src_de/` and `docs/lib/`
-- **Configuration**: `docs/docs.yaml`
-- **Reconstructed Outputs**: `docs/out_en/` and `docs/out_ru/`
+* **Source & Templates:** `docs/src_de/` and `docs/lib/`
+* **Configuration:** `docs/docs.yaml`
+* **Reconstructed Outputs:** `docs/out_en/` and `docs/out_ru/`
+* **Compiled Manuals:** `pdf/manual_de.pdf`, `pdf/manual_en.pdf`, and `pdf/manual_ru.pdf`
 
 ---
 

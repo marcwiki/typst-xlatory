@@ -4,7 +4,7 @@
 
 // Fonts
 #let font-serif = "Libertinus Serif"
-#let font-sans = "Arial"
+#let font-sans = ("Arial", "Liberation Sans")
 #let font-cursive = "Marck Script"
 
 // Colours

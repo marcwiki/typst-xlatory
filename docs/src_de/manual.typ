@@ -1,5 +1,5 @@
 
-#import "../lib/mod.typ": (
+#import "/lib/mod.typ": (
   layout-regex-box,
   layout-title-page,
   layout-body-text,
@@ -22,7 +22,7 @@
 // 1. Titelseiten-Layout aktivieren (ohne [...] um den Inhalt!)
 #show: layout-title-page
 
-#title-author[Marc G.] <title:author>
+#title-author[Marc Günthardt] <title:author>
 
 #title-main[typst-xlatory] <title:main>
 
@@ -65,13 +65,13 @@
 
 #dropcap-par[Zu Beginn nahm ich an, dass der EPUB 3 Standard eine sinnvolle Basis sein könnte, und habe mit allerlei PDF Generatoren versucht, ein komplexeres Format zu erstellen. Dies gelang mir einzig mit dem Prince-Generator einigermassen, was leider nicht Open Source ist, und auch sehr aufwendig werden kann, wenn die Vorgaben komplex sind. Die Idee war für mich verlockend, eine Single Source of Truth im Epub 3 Format, und daraus sollten die PDF-Formate erstellt werden. Ein Buch wäre so automatisch als Print-Medium wie auch als Epub verfügbar. Da ein Epub intern HTML verwendet, war die Einbindung von OmegaT als Übersetzhungsumgebung gut unterstützt. Diesen Ansatz musst ich irgendwann als gescheitert betrachten, da die mir verfügbaren Open Source PDF Generatoren eine präzise Gestaltung von PDF-Formaten nicht unterstützt haben.] <p_id_9>
 
-Also habe ich meinen Blickwinkel darauf gerichtet, welche Umgebungen es überhaupt gibt, die eine effiziente und präzise Umsetzung von PDF Formaten erlauben. Dabei bin ich auf Typst gestossen, das meistens in akademischen Umgebungen verwendet wird, und unter vielem anderen auch die Darstellung von mathematischen Formeln erlaubt. Auf jeden Fall unterstützt Typst die Umsetzung von Texten nach PDF bestens, man muss ja nicht das ganze Funktionsspektrum nutzen. Ein weiterer grosser Vorteil von Typst liegt in seinen Möglichkeiten zur Standardisierung von Vereinheitlichung von Formaten. Bei der Übersetzung einer ganzen Buchreihe mit ähnlichen oder gleichen Formaten kann man auf eine einzige Bibliothek von Formatierungsfunktionen zurückgreifen, und alle Bücher der Reihe werden in allen Sprachen gleich formatiert, sofern die Sprachen von links nach rechts und von oben nach unten geschrieben werden.<p_id_10>
+Also habe ich meinen Blickwinkel darauf gerichtet, welche Umgebungen es überhaupt gibt, die eine effiziente und präzise Umsetzung von PDF Formaten erlauben. Dabei bin ich auf Typst gestossen, das meistens in akademischen Umgebungen verwendet wird, und unter vielem anderen auch die Darstellung von mathematischen Formeln erlaubt. Auf jeden Fall unterstützt Typst die Umsetzung von Texten nach PDF bestens, man muss ja nicht das ganze Funktionsspektrum nutzen. Ein weiterer grosser Vorteil von Typst liegt in seinen Möglichkeiten zur Standardisierung und Vereinheitlichung von Formaten. Bei der Übersetzung einer ganzen Buchreihe mit ähnlichen oder gleichen Formaten kann man so auf eine einzige Bibliothek von Formatierungsfunktionen zurückgreifen, und alle Bücher der Reihe werden in allen Sprachen gleich formatiert, sofern die Sprachen von links nach rechts und von oben nach unten geschrieben werden.<p_id_10>
 
-Allerdings konnte ich zunächst meine OmegaT Übersetzungsumgebung nicht auf Typst-Dateien anwenden, es gab keine Filter mit ausreichender Funktionalität. Also habe ich ein Programm geschrieben, das Typst-Dateien in eine für OmegaT lesbare Struktur bringt. Dabei erhält jeder Absatz in Typst ein Label mit einer ID, und diese ID ist dann der Schlüssel zu den Texten in OmegaT. Ein Zusatzprogramm nimmt die übersetzten Texte und erstellt aus dem Originaldokument und diesen Texten ein übersetztes Dokument, das genau so formatiert ist wie das Original.<p_id_11>
+Allerdings konnte ich zunächst meine OmegaT Übersetzungsumgebung nicht auf Typst-Dateien anwenden, es gab keine Filter mit ausreichender Funktionalität. Also habe ich ein Programm geschrieben, das Typst-Dateien in eine für OmegaT lesbare Struktur bringt. Dabei erhält jeder Absatz in Typst ein Label mit einer ID, und diese ID ist dann der Schlüssel zu den Texten in OmegaT. Ein Zusatzprogramm nimmt das Originaldokument und die übersetzten Texte und erstellt daraus ein übersetztes Dokument, das genau so formatiert ist wie das Original.<p_id_11>
 
-Damit ist das Typst-Originaldokument meine "Single Source of Truth" und gibt die Struktur sowie das Format vor für allen übersetzten Dokumente.<p_id_12>
+Damit ist das Typst-Originaldokument meine "Single Source of Truth" und gibt die Struktur sowie das Format vor für daraus abgeleiteten, übersetzten Dokumente.<p_id_12>
 
-Da ich den von mir verwendeten Sprachumfang von Typst recht gut kenne, könnte ich statt der Schlüssel-Wert-Paare wahlweise auch andere Formate generieren, zum Beispiel HTML oder Obisian Markup.<p_id_13>
+Da ich den von mir verwendeten Sprachumfang von Typst mittlerweile recht gut kenne, könnte ich statt der Schlüssel-Wert-Paare wahlweise auch andere Formate generieren, zum Beispiel HTML oder Obisian Markup. Einem Ausbau zur Generierung von alternativen Formaten steht also nichts im Wege. <p_id_13>
 
 = Einführung und Motivation <h1:einfuehrung>
 
@@ -292,6 +292,10 @@ Aus dieser einzigen Quelle werden über die Konfigurationsdatei `docs/docs.yaml`
 - *Fehlende Übersetzung im Zieldokument*: Erscheint im rekonstruierten Typst-Dokument der Platzhalter `DE_TRANSLATION_MISSING`, wurde der entsprechende Eintrag im CAT-Tool noch nicht übersetzt oder die Zieldatei nach der Übersetzung noch nicht neu geschrieben. <p:ts-list-2>
 
 - *Sonderzeichen und Formatierungen*: Inline-Formatierungen wie `*bold*`, `_italic_` oder Querverweise (`#link(...)`) werden vom Parser erkannt und als geschützte Tags an das CAT-Tool übergeben. Achte beim Übersetzen darauf, diese Tags an den passenden Stellen im Zielsatz beizubehalten. <p:ts-list-3>
+
+== In OmegaT die Pfade für source und target einrichten <h2:omegat-paths>
+
+Anstatt sich unter Windows durch die verschachtelten Datei-Dialoge von OmegaT zu klicken, kannst man die Pfade für source und target bei geschlossenem OmegaT auch direkt mit einem Texteditor in der Datei omegat.project (im jeweiligen externen OmegaT-Projektordner) anpassen. Dort stehen die Pfade als simple XML-Tags (`<source_dir>...</source_dir>` und `<target_dir>...</target_dir>`), was deutlich schneller und fehlerfreier funktioniert.
 
 == Geschützte Tags in OmegaT einrichten <h2:omegat-tags>
 

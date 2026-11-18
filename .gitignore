@@ -5,5 +5,14 @@
 *.hi
 *.dyn_o
 *.dyn_hi
-*.pdf
 
+# Generierte PDFs
+*.pdf
+pdf/
+
+# OmegaT Artefakte
+auto/
+enforce/
+mt/
+penalty-xxx/
+tmx2source/
