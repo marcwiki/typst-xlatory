@@ -10,17 +10,35 @@ directories:
   omega_source_dir: "../typst-omegat/source"
   omega_target_dir: "../typst-omegat/target"
 
-# Funktionen, die das Layout steuern und ignoriert werden müssen
 hide_functions:
+  # Typst-Standardbefehle
   - outline
   - pagebreak
-  - apply-title-page-layout
-  - apply-first-page-layout
-  - start-normal-text
-  - counter
-  - cover-page
   - include
+  - raw
+  - show
   - v
   - h
   - link
 
+  # Eigene Layout-Makros aus docs/lib/
+  - layout-cover
+  - layout-frontmatter
+  - layout-title-page
+  - layout-body-text
+  - layout-sub-toc
+  - layout-regex-box
+
+ignore_named_args:
+  # Typst-Standards
+  - font
+  - style
+  - weight
+  - lang
+  - region
+  - fill
+  - stroke
+  - align
+
+  # custom names:
+  - key

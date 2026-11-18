@@ -1,14 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-{- |
-Module      : Typst.Printer
-Description : Exports a parsed t'TypstDoc' AST into Java .properties files for CAT tools.
-License     : GPL-3.0-or-later
-
-Serializes headings, paragraphs, and translatable macro arguments into
-key-value pairs compatible with OmegaT and other CAT tools, while filtering
-out non-translatable layout macros configured via @hide_functions@.
--}
+-- |
+-- Module      : Typst.Printer
+-- Description : Exports a parsed t'TypstDoc' AST into Java .properties files for CAT tools.
+-- License     : GPL-3.0-or-later
+--
+-- Serializes headings, paragraphs, and translatable macro arguments into
+-- key-value pairs compatible with OmegaT and other CAT tools, while filtering
+-- out non-translatable layout macros configured via @hide_functions@.
 module Typst.Printer
   ( generateOmegaT,
     extractFunctionsReport,
@@ -80,20 +79,20 @@ nodeToProperty ignoreArgsSet node = case node of
         currentId <- getNextId
         return $ T.pack (show currentId)
 
-    -- 1. Alle übersetzbaren Named Arguments dynamisch einsammeln
+    -- 1. Dynamically collect all translatable named arguments
     let translatableNamedArgs =
           [ let cleanVal = T.strip (T.drop 1 (T.dropEnd 1 (T.strip v)))
              in T.concat ["func_", name, "_", idBase, "_arg_", k, "=", cleanVal]
-          | NamedArg k v <- args
-          , isTranslatableNamedArg ignoreArgsSet (k, v) -- <-- ignoreArgsSet hier übergeben
+          | NamedArg k v <- args,
+            isTranslatableNamedArg ignoreArgsSet (k, v) -- <-- ignoreArgsSet hier übergeben
           ]
 
-    -- 2. Hauptinhalt ([...]) wie bisher
+    -- 2. Main content ([...]) as before
     let propArg = case mTextArg of
           Just txt -> [T.concat ["func_", name, "_", idBase, "_arg=", normalizeKeepParagraphs txt]]
           Nothing -> []
 
-    -- Alle existierenden Zeilen sauber getrennt zurückgeben
+    -- Return all existing lines, each on its own line
     return $ T.intercalate "\n" (translatableNamedArgs ++ propArg)
   MalformedFunction _ ->
     return T.empty
@@ -135,13 +134,13 @@ rememberFunction name = do
   (currentId, funcs) <- get
   put (currentId, S.insert ("#" <> name) funcs)
 
--- Sucht nach dem Wert eines bestimmten benannten Arguments (z.B. "label")
+-- Searches for the value of a specific named argument (e.g., “label”)
 findNamedArgValue :: T.Text -> [TypstArg] -> Maybe T.Text
 findNamedArgValue targetKey args =
   let matches = [T.dropAround (== '"') val | NamedArg key val <- args, key == targetKey]
    in listToMaybe matches
 
--- Verarbeitet die ContentArgs: Trennt den reinen Text dynamisch vom Tag via extractLabel
+-- Processes the ContentArgs: Dynamically separates the plain text from the tag using extractLabel
 findContentAndTag :: [TypstArg] -> (Maybe T.Text, Maybe T.Text)
 findContentAndTag args =
   let contents = [txt | ContentArg txt <- args]
@@ -152,42 +151,39 @@ findContentAndTag args =
               (cleanText, mTag) = extractLabel fullText
            in case mTag of
                 Just tagVal ->
-                  -- KORRIGIERTER SAFETY-CHECK:
-                  -- Ein echtes Funktions-Label steht IMMER am absoluten Ende des Textes.
-                  -- Wenn der Text mit ']' oder einem anderen Zeichen endet, das nicht zum Label gehört,
-                  -- handelt es sich um ein eingebettetes Link-Ziel. Das lassen wir komplett unangetastet!
+                  -- A true function label is ALWAYS placed at the very end of the text.
+                  -- If the text ends with ‘]’ or another character that is not part of the label,
+                  -- This is an embedded link destination. We'll leave it completely untouched!
                   if "]" `T.isSuffixOf` T.strip fullText
-                    then (Just fullText, Nothing) -- Link bleibt zu 100% intakt!
-                    else (Just cleanText, Just tagVal) -- Echtes ID-Label extrahieren
+                    then (Just fullText, Nothing) -- The link remains 100% intact!
+                    else (Just cleanText, Just tagVal) -- Extract the actual ID label
                 Nothing -> (Just fullText, Nothing)
 
--- In src/Typst/Printer.hs anpassen:
 printInline :: TypstInline -> T.Text
 printInline (PlainText txt) = txt
 printInline (InlineLink target label) = T.concat ["#link(", target, ")[", label, "]"]
--- FIX: Der fehlende Zweig für den Fettdruck hinzugefügt!
 printInline (InlineBold inlines) =
-  -- Übersetzt den fettgedruckten Inhalt rekursiv und verpackt ihn in HTML-Tags für OmegaT
+  -- Translates the text in bold recursively and wraps it in HTML tags for OmegaT
   T.concat ["<b>", T.unwords (map printInline inlines), "</b>"]
 
--- Glättet einzelne Zeilenumbrüche innerhalb eines Absatzes zu Leerzeichen,
--- bewahrt aber doppelte Zeilenumbrüche (\n\n) als echte Absatztrennung.
+-- Replaces individual line breaks within a paragraph with spaces,
+-- However, it preserves double line breaks (\n\n) as actual paragraph breaks.
 normalizeKeepParagraphs :: T.Text -> T.Text
 normalizeKeepParagraphs txt =
-  let -- Vereinheitlicht Windows-Zeilenumbrüche (\r\n) zu \n
+  let -- Standardizes Windows line breaks (\r\n) to \n
       unixTxt = T.replace "\r\n" "\n" txt
-      -- Trennt an doppelten Zeilenumbrüchen (auch wenn Leerzeichen dazwischen sind)
+      -- Splits at double line breaks (even if there are spaces in between)
       blocks = T.splitOn "\n\n" unixTxt
-      -- Glättet jeden Block für sich zu einer sauberen Fließtext-Zeile
+      -- Flattens each block individually into a clean line of continuous text
       cleanBlocks = map (T.unwords . T.words) blocks
    in T.intercalate "\n\n" (filter (not . T.null) cleanBlocks)
 
--- Standard-Fallback, falls in der YAML-Datei kein ignore_named_args definiert ist
+-- Default fallback if `ignore_named_args` is not defined in the YAML file
 defaultIgnoredNamedArgs :: S.Set T.Text
 defaultIgnoredNamedArgs =
   S.fromList ["font", "style", "weight", "lang", "region", "fill", "stroke", "align"]
 
--- Prüft anhand des übergebenen Sets, ob ein NamedArg übersetzbar ist
+-- Checks, based on the provided set, whether a NamedArg can be translated
 isTranslatableNamedArg :: S.Set T.Text -> (T.Text, T.Text) -> Bool
 isTranslatableNamedArg ignoredKeys (k, v) =
   let stripped = T.strip v

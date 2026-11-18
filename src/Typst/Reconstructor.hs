@@ -1,43 +1,41 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-{- |
-Module      : Typst.Reconstructor
-Description : Reconstructs valid Typst source files from original ASTs and translated entries.
-License     : GPL-3.0-or-later
-
-Merges the structural layout and non-translatable directives of the original
-t'TypstDoc' with translated text segments from CAT tools to generate ready-to-compile
-target language @.typ@ files.
--}
+-- |
+-- Module      : Typst.Reconstructor
+-- Description : Reconstructs valid Typst source files from original ASTs and translated entries.
+-- License     : GPL-3.0-or-later
+--
+-- Merges the structural layout and non-translatable directives of the original
+-- t'TypstDoc' with translated text segments from CAT tools to generate ready-to-compile
+-- target language @.typ@ files.
 module Typst.Reconstructor
   ( startImportPipeline,
   )
 where
 
 import Data.Foldable (traverse_)
+import Data.List (find, isPrefixOf)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Data.List (find, isPrefixOf)
 import System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
 import System.FilePath (replaceExtension, takeBaseName, takeExtension, (</>))
 import Text.Megaparsec (errorBundlePretty, parse)
--- Imports aus deinen Modulen
+-- Imports from our modules
 import Typst.AST (BookNode (..), TypstArg (..), TypstDoc (..), TypstInline (..))
--- Dein Haupt-Parser für Typst-Dateien
 import Typst.ImporterParser (TranslatedProperty (..), parsePropertiesFile)
 import Typst.Parser (parseTypst)
 
--- | Startet den Re-Import und reicht die Sets weiter
+-- | Start the re-import and pass the sets along
 startImportPipeline :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> S.Set T.Text -> IO ()
 startImportPipeline sourceDir omegaTargetDir deDir hideSet ignoreArgsSet = do
   createDirectoryIfMissing True deDir
   allFiles <- listDirectory sourceDir
   let typstFiles = filter (\f -> takeExtension f == ".typ") allFiles
   traverse_ (importSingleFile sourceDir omegaTargetDir deDir hideSet ignoreArgsSet) typstFiles
-  putStrLn "[SUCCESS] Import erfolgreich abgeschlossen! Typst-Dateien wurden generiert."
+  putStrLn "[SUCCESS] Import completed successfully! Typst files have been generated."
 
 importSingleFile :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> S.Set T.Text -> FilePath -> IO ()
 importSingleFile sourceDir transDir targetDir hideSet ignoreArgsSet file = do
@@ -59,28 +57,27 @@ importSingleFile sourceDir transDir targetDir hideSet ignoreArgsSet file = do
 
   case mMatchedProp of
     Just propFile -> proceedWithImport origPath (transDir </> propFile) destPath hideSet ignoreArgsSet
-    Nothing -> putStrLn $ "[WARN] Keine Übersetzung gefunden für: " ++ file
-
+    Nothing -> putStrLn $ "[WARN] No translation found for: " ++ file
 
 proceedWithImport :: FilePath -> FilePath -> FilePath -> S.Set T.Text -> S.Set T.Text -> IO ()
 proceedWithImport origPath propPath destPath hideSet ignoreArgsSet = do
   origContent <- TIO.readFile origPath
   propContent <- TIO.readFile propPath
 
-  -- 1. Original-Datei sauber über deine parseTypst-Funktion einlesen
+  -- 1. Read the original file correctly using the `parseTypst` function
   let originalAST = case parseTypst origPath origContent of
         Left err -> error $ "Parsing Fehler Quelle:\n" ++ errorBundlePretty err
         Right (TypstDoc ast) -> ast
 
-      -- 2. Übersetzungen strukturiert als Inline-AST einlesen
+      -- 2. Load translations structured as an inline AST
       translationMap = case parse parsePropertiesFile propPath propContent of
         Left err -> error $ "Parsing Fehler Properties:\n" ++ errorBundlePretty err
         Right props -> M.fromList [(propKey p, propValue p) | p <- props]
 
-  -- 3. Rekonstruktion ausführen
+  -- 3. Perform Reconstruction
   let (reconstructedNodes, _) = runReconstruction originalAST translationMap hideSet ignoreArgsSet 1
 
-  -- 4. Speichern
+  -- 4. Save
   TIO.writeFile destPath (T.intercalate "\n\n" reconstructedNodes)
 
 runReconstruction :: [BookNode] -> M.Map T.Text [TypstInline] -> S.Set T.Text -> S.Set T.Text -> Int -> ([T.Text], Int)
@@ -90,10 +87,9 @@ runReconstruction (node : rest) transMap hideSet ignoreArgsSet currentId =
       (restTxts, finalId) = runReconstruction rest transMap hideSet ignoreArgsSet nextId
    in (txt : restTxts, finalId)
 
--- | Übersetzt und rekonstruiert eine einzelne Node
+-- | Translates and reconstructs a single node
 reconstructSingleNode :: BookNode -> M.Map T.Text [TypstInline] -> S.Set T.Text -> S.Set T.Text -> Int -> (T.Text, Int)
 reconstructSingleNode node transMap hideSet ignoreArgsSet currentId = case node of
-
   Paragraph _ mLabel ->
     let idBase = case mLabel of
           Just lbl -> labelToPropKey lbl
@@ -102,7 +98,6 @@ reconstructSingleNode node transMap hideSet ignoreArgsSet currentId = case node 
 
         translatedInlines = M.findWithDefault [PlainText "DE_TRANSLATION_MISSING"] ("text_" <> idBase) transMap
 
-        -- FIX: Spitze Klammern <...> wieder um das Label setzen
         suffix = case mLabel of
           Just l -> " <" <> cleanLabelForKey l <> ">"
           Nothing -> ""
@@ -120,7 +115,7 @@ reconstructSingleNode node transMap hideSet ignoreArgsSet currentId = case node 
           Nothing -> ""
      in (prefix <> printInlines translatedInlines <> suffix, nextId)
   CustomFunction name args mLabel ->
-    let -- 1. Sucht am ENDE des ContentArg nach einem eingebetteten <tag> (z. B. <p_id_53> statt <p_id_52>)
+    let -- 1. Search at the END of the ContentArg for an embedded <tag> (e.g., <p_id_53> instead of <p_id_52>)
         embeddedTag = case [txt | ContentArg txt <- args] of
           (t : _) ->
             let stripped = T.stripEnd t
@@ -136,7 +131,7 @@ reconstructSingleNode node transMap hideSet ignoreArgsSet currentId = case node 
           Just l -> Just l
           Nothing -> embeddedTag
 
-        -- Nutzt labelToPropKey (':' -> '_') für den Map-Lookup; bei Nothing nackte Zahl wie in Printer.hs
+        -- Use labelToPropKey (‘:’ -> ‘_’) for the map lookup; if Nothing, use a raw number as in Printer.hs
         idBase = case effectiveLabel of
           Just lbl -> labelToPropKey lbl
           Nothing -> T.pack (show currentId)
@@ -151,7 +146,6 @@ reconstructSingleNode node transMap hideSet ignoreArgsSet currentId = case node 
             let lookupKey = "func_" <> name <> "_" <> idBase <> "_arg"
                 mTextArg = M.lookup lookupKey transMap
 
-                -- NEU: Dynamisches Ersetzen für alle benannten String-Argumente
                 updatedNamedArgs =
                   map
                     ( \(k, v) ->
@@ -190,7 +184,7 @@ reconstructSingleNode node transMap hideSet ignoreArgsSet currentId = case node 
              in ("#" <> name <> parensContent <> "[" <> finalContentText <> "]" <> suffix, nextId)
   MalformedFunction txt -> (txt, currentId)
 
--- | Hilfsfunktion: Wandelt den Inline-AST wieder in natives Typst um
+-- | Help function: Converts the inline AST back to native TypeScript
 printInlines :: [TypstInline] -> T.Text
 printInlines inlines = T.unwords (map printInline inlines)
   where
@@ -198,15 +192,15 @@ printInlines inlines = T.unwords (map printInline inlines)
     printInline (InlineLink target label) = T.concat ["#link(", target, ")[", label, "]"]
     printInline (InlineBold content) = T.concat ["*", printInlines content, "*"]
 
--- Hilfsfunktion für Key-Bereinigung, falls sie nicht aus der AST kommt
+-- Helper function for key cleanup, in case it does not come from the AST
 cleanLabelForKey :: T.Text -> T.Text
 cleanLabelForKey lbl = T.replace "<" "" (T.replace ">" "" lbl)
 
--- Ersetzt zusätzlich ':' durch '_' für den Lookup in transMap (z. B. "h2-id-1_cl-numbered")
+-- Also replace ‘:’ with ‘_’ for the lookup in transMap (e.g., “h2-id-1_cl-numbered”)
 labelToPropKey :: T.Text -> T.Text
 labelToPropKey lbl = T.replace ":" "_" (cleanLabelForKey lbl)
 
--- | Rekonstruiert eine versteckte Funktion exakt im russischen Originalzustand.
+-- | Reconstructs a hidden feature exactly as it appeared in the original version.
 printOriginalFunction :: T.Text -> [TypstArg] -> Maybe T.Text -> T.Text
 printOriginalFunction name args mLabel =
   let parenArgs =
@@ -214,8 +208,8 @@ printOriginalFunction name args mLabel =
             NamedArg k v -> k <> ": " <> v
             PositionalArg v -> v
             ContentArg _ -> ""
-        | arg <- args
-        , case arg of ContentArg _ -> False; _ -> True
+        | arg <- args,
+          case arg of ContentArg _ -> False; _ -> True
         ]
       contentArgs = [txt | ContentArg txt <- args]
       parensContent =
@@ -228,4 +222,3 @@ printOriginalFunction name args mLabel =
         Just lbl -> " <" <> cleanLabelForKey lbl <> ">"
         Nothing -> ""
    in "#" <> name <> parensContent <> bracketsContent <> suffix
-

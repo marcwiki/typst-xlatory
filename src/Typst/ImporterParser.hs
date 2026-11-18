@@ -1,21 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-{- |
-Module      : Typst.ImporterParser
-Description : Parses translated Java .properties files back into structured AST nodes.
-License     : GPL-3.0-or-later
-
-Reads key-value entries exported from CAT tools (such as OmegaT), reconstructs
-inline formatting (bold HTML tags, Typst links, and protected backtick code),
-and maps them back to their original structural identifiers.
--}
+-- |
+-- Module      : Typst.ImporterParser
+-- Description : Parses translated Java .properties files back into structured AST nodes.
+-- License     : GPL-3.0-or-later
+--
+-- Reads key-value entries exported from CAT tools (such as OmegaT), reconstructs
+-- inline formatting (bold HTML tags, Typst links, and protected backtick code),
+-- and maps them back to their original structural identifiers.
 module Typst.ImporterParser
   ( TranslatedProperty (..),
     parsePropertiesFile,
     parseOmegaTInline,
   )
 where
-
 
 import qualified Data.Text as T
 import Data.Void (Void)
@@ -25,20 +23,20 @@ import Typst.AST (TypstInline (..))
 
 type Parser = Parsec Void T.Text
 
--- | Repräsentiert einen gelesenen Eintrag aus der OmegaT-Datei
+-- | Represents an entry read from the OmegaT file
 data TranslatedProperty = TranslatedProperty
   { propKey :: T.Text,
     propValue :: [TypstInline]
   }
   deriving (Show, Eq)
 
--- | Haupt-Einstiegspunkt für den Import: Parsed die gesamte .properties Datei
+-- | Main entry point for importing: Parses the entire .properties file
 parsePropertiesFile :: Parser [TranslatedProperty]
 parsePropertiesFile = do
   _ <- space
   many (try propertyLineParser <* space)
 
--- | Parsed eine einzelne (auch mehrzeilige) Property-Definition: key=value
+-- | Parses a single (or multi-line) property definition: key=value
 propertyLineParser :: Parser TranslatedProperty
 propertyLineParser = do
   -- Kommentare überspringen (aber keine #link-Zeilen)
@@ -49,7 +47,7 @@ propertyLineParser = do
   firstLine <- takeWhileP (Just "Property Value") (\c -> c /= '\n' && c /= '\r')
   _ <- optional eol
 
-  -- Liest alle Folgezeilen (inkl. Leerzeilen in Blöcken wie #chapter-extract) bis zum nächsten key=
+  -- Reads all subsequent lines (including blank lines in blocks such as #chapter-extract) up to the next key=
   contLines <- many $ try $ do
     notFollowedBy eof
     notFollowedBy (try (char '#' >> notFollowedBy (string "link")))
@@ -67,7 +65,7 @@ propertyLineParser = do
 
   return $ TranslatedProperty (T.strip key) inlineAST
   where
-    -- Erkennt sicher, ob auf der aktuellen Zeile ein neuer OmegaT-Key startet
+    -- Reliably detects whether a new OmegaT key begins on the current line
     nextPropertyKey = do
       _ <- choice [string "text_", string "func_", string "heading_"]
       _ <- takeWhile1P Nothing (\c -> c `notElem` ['=', '\n', '\r', ' '])
@@ -79,21 +77,21 @@ parseOmegaTInline :: Parser [TypstInline]
 parseOmegaTInline =
   many
     ( choice
-        [ try omegatInlineCodeParser, -- 1. Höchste Priorität: Alles in `...` unverändert übernehmen
-          try omegatLinkParser,       -- 2. Echte Links: #link(<target>)[text]
-          try omegatBoldParser,       -- 3. Bold-Tags: <b>inhalt</b>
-          omegatTextParser            -- 4. Normaler Text (inkl. sicherem Fallback)
+        [ try omegatInlineCodeParser, -- 1. Top priority: Keep everything inside `...` unchanged
+          try omegatLinkParser, -- 2. Real links: #link(<target>)[text]
+          try omegatBoldParser, -- 3. Bold tags: <b>content</b>
+          omegatTextParser -- 4. Normal text (including a safe fallback)
         ]
     )
   where
-    -- 0. Schützt Inline-Code in Backticks komplett vor Link-/Tag-Parsing
+    -- 0. Completely protects inline code enclosed in backticks from link/tag parsing
     omegatInlineCodeParser = do
       _ <- char '`'
       code <- takeWhile1P (Just "Inline Code") (\c -> c /= '`' && c /= '\n')
       _ <- char '`'
       return $ PlainText ("`" <> code <> "`")
 
-    -- 1. Erkennt Links: #link(<target>)[text] mit flexiblen Spaces
+    -- 1. Recognizes links: #link(<target>)[text] with flexible spaces
     omegatLinkParser = try $ do
       _ <- string "#link"
       _ <- hspace
@@ -108,7 +106,7 @@ parseOmegaTInline =
       _ <- char ']'
       return $ InlineLink (T.strip target) (T.strip linkText)
 
-    -- 2. Erkennt Bold-Tags: <b>inhalt</b>
+    -- 2. Recognizes bold tags: <b>content</b>
     omegatBoldParser = try $ do
       _ <- string "<b>"
       content <-
@@ -119,7 +117,7 @@ parseOmegaTInline =
       _ <- string "</b>"
       return $ InlineBold content
 
-    -- 3. Liest normalen Text, stoppt nur vor schliessendem </b>
+    -- 3. Reads normal text, stopping only before a closing </b> tag
     omegatTextParser = do
       notFollowedBy (string "</b>")
       c <- anySingle

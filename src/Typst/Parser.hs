@@ -1,16 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-{- |
-Module      : Typst.Parser
-Description : Megaparsec-based parser for translating Typst markup into a custom AST.
-License     : GPL-3.0-or-later
-
-Provides the Phase 1 parser that converts raw Typst source documents into a
-structured t'TypstDoc' abstract syntax tree. It separates translatable content
-(headings, paragraphs, inline formatting, and custom macro arguments) from
-non-translatable layout directives and preserves explicit Typst labels for
-lossless roundtrip reconstruction.
--}
+-- |
+-- Module      : Typst.Parser
+-- Description : Megaparsec-based parser for translating Typst markup into a custom AST.
+-- License     : GPL-3.0-or-later
+--
+-- Provides the Phase 1 parser that converts raw Typst source documents into a
+-- structured t'TypstDoc' abstract syntax tree. It separates translatable content
+-- (headings, paragraphs, inline formatting, and custom macro arguments) from
+-- non-translatable layout directives and preserves explicit Typst labels for
+-- lossless roundtrip reconstruction.
 module Typst.Parser
   ( parseTypst,
   )
@@ -63,10 +62,10 @@ multilineImportParser = do
   (rawText, _) <- match $ do
     _ <- hspace
     _ <- string "#import"
-    -- Liest bis zur öffnenden Klammer '(' auf derselben Zeile
+    -- Reads up to the opening parenthesis ‘(’ on the same line
     _ <- takeWhileP Nothing (\c -> c /= '(' && c /= '\n')
     _ <- char '('
-    -- Liest alles über beliebig viele Zeilen hinweg bis zur schliessenden Klammer ')'
+    -- Reads everything across any number of lines up to the closing parenthesis ‘)’
     _ <- manyTill anySingle (char ')')
     _ <- optional (manyTill anySingle eol)
     return ()
@@ -77,10 +76,10 @@ ignoreCommandsParser = do
   (rawText, _) <- match $ do
     _ <- hspace
     choice
-      [ -- 1. Inline-Abstände: Stoppen exakt nach ')', damit Text dahinter (z. B. А 80) erhalten bleibt
+      [ -- 1. Inline spacing: Stop exactly after ‘)’, so that the text that follows (e.g., А 80) is preserved
         try (string "#v(" >> manyTill anySingle (char ')') >> return ()),
         try (string "#h(" >> manyTill anySingle (char ')') >> return ()),
-        -- 2. Zeilen-Befehle & mehrzeilige Imports: Lesen bis zum Zeilenende
+        -- 2. Line Commands & Multi-Line Imports: Reading Until the End of the Line
         do
           _ <-
             choice
@@ -119,10 +118,10 @@ functionParser = do
   name <- takeWhile1P (Just "Funktionsname") (\c -> c `elem` ['a' .. 'z'] ++ ['0' .. '9'] ++ ['A' .. 'Z'] ++ ['-', '_'])
   args <- argumentsParser
 
-  -- Überspringt optionalen Whitespace/Zeilenumbruch vor dem Label
+  -- Skips optional whitespace/line break before the label
   _ <- space
 
-  -- Holt das Label direkt an Ort und Stelle ab
+  -- Pick up the label right there on the spot
   mLabel <- optional $ do
     _ <- char '<'
     lbl <- takeWhile1P (Just "Function Label") (\c -> c /= '>')
@@ -135,16 +134,16 @@ paragraphParser :: Parser (Maybe BookNode)
 paragraphParser = do
   notFollowedBy (choice [string "#import", string "#show", string "#set", string "#row", string "#outline", string "=", string "//", string "(", string " )"])
 
-  -- 1. Wir lesen den gesamten Absatz inklusive Zeilenumbrüchen ein.
-  --    Wir stoppen erst, wenn eine leere Zeile (\n\n) oder ein Blockbefehl droht.
+  -- 1. We read the entire paragraph, including line breaks.
+  --    We don't stop until we encounter an empty line (\n\n) or a block command.
   rawParagraphText <- manyTill anySingle (lookAhead endOfParagraph)
   let rawText = T.pack rawParagraphText
 
-  -- 2. Nutzt dein originales extractLabel auf dem gesamten Absatz-String!
+  -- 2. Use the original `extractLabel` throughout the entire paragraph string!
   let (cleanText, mLabel) = extractLabel rawText
       cleanId = fmap cleanLabelForKey mLabel
 
-  -- 3. Inlines aus dem absolut label-freien Text herausparsen
+  -- 3. Parse inline elements from text that is completely free of labels
   let inlineAST = case runParser (many inlineParser <* eof) "inside-paragraph" (T.strip cleanText) of
         Left _ -> [PlainText (T.strip cleanText)]
         Right ast -> ast
@@ -153,14 +152,14 @@ paragraphParser = do
     then return Nothing
     else return $ Just (Paragraph inlineAST cleanId)
   where
-    -- Definiert, wann ein Absatz im Buch physisch zu Ende ist
+    -- Defines when a paragraph in a book physically ends
     endOfParagraph =
       choice
         [ eof,
-          try (eol >> eol >> return ()), -- Doppelte Leerzeile -> gibt () zurück
+          try (eol >> eol >> return ()), -- Double blank line -> returns ()
           try $ do
             _ <- eol
-            -- Jedes Element in der choice-Liste wird durch 'void' oder '>> return ()' zu ()
+            -- Each element in the choice list is converted to () using ‘void’ or ‘>> return ()’
             _ <-
               choice
                 [ string "#import",
@@ -189,22 +188,22 @@ argumentsParser = do
 parenArgsParser :: Parser [TypstArg]
 parenArgsParser = between (char '(') (char ')') $ do
   _ <- space
-  -- Parsed alle Argumente (valide & invalide) und filtert die Nothings heraus
+  -- Parses all arguments (valid and invalid) and filters out the “Nothings”
   args <- anyArgParser `sepBy` (L.lexeme space (char ','))
   return (catMaybes args)
 
 anyArgParser :: Parser (Maybe TypstArg)
 anyArgParser =
   choice
-    [ try (Just <$> namedStringArgParser), -- Erkennt Key: "String" -> behält "..."
-      try (Just <$> namedRawArgParser), -- Erkennt Key: 0mm / true -> ohne "..."
-      try positionalStringArgParser, -- NEU: "String mit (Klammern), Kommas und \"Quotes\""
-      positionalArgParser -- Erkennt <label>, 1em, true usw. -> behält sie als PositionalArg
+    [ try (Just <$> namedStringArgParser), -- If the key is “String,” it retains “...”
+      try (Just <$> namedRawArgParser), -- Detects key: 0mm / true -> without “...”
+      try positionalStringArgParser, -- “String with (parentheses), commas, and \”quotes\“”
+      positionalArgParser -- Recognizes <label>, 1em, true, etc. -> retains them as PositionalArg
     ]
   where
     identParser = takeWhile1P (Just "Arg Key") (\c -> c `elem` (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['-', '_']))
 
-    -- Liest einen String inklusive escaped Zeichen (\") und innerer Klammern sauber bis zum schliessenden "
+    -- Reads a string—including escaped characters (\“) and parentheses—correctly up to the closing ”
     quotedStringLiteral = do
       _ <- char '"'
       chunks <- many (try escapedChar <|> (T.singleton <$> noneOf ['"']))
@@ -253,7 +252,7 @@ namedStringArgParser = do
 
 skipArg :: Parser (Maybe TypstArg)
 skipArg = do
-  -- Konsumiert das ungewollte Argument bis zum Trennzeichen, ohne den AST zu belasten
+  -- Processes the unwanted argument up to the separator without affecting the AST
   _ <- takeWhileP (Just "Ignored Argument") (\c -> c `notElem` [',', ')'])
   return Nothing
 
@@ -263,13 +262,13 @@ bracketArgsParser = do
   content <- balancedContent 1 T.empty
   return [ContentArg (T.strip content)]
 
--- Stelle sicher, dass 'eof' aus Text.Megaparsec importiert ist
+-- Make sure that ‘eof’ is imported from Text.Megaparsec
 
 balancedContent :: Int -> T.Text -> Parser T.Text
 balancedContent 0 acc = return acc
 balancedContent depth acc = do
-  -- NOTBREMSE: Wir prüfen zuerst fliegend, ob die Datei zu Ende ist.
-  -- Wenn ja, geben wir den gesammelten Puffer zurück und verhindern den Freeze!
+  -- EMERGENCY STOP: We first check on the fly to see if the file has ended.
+  -- If so, we'll return the accumulated buffer and prevent the freeze!
   isEOF <- choice [eof >> return True, return False]
   if isEOF
     then return acc
@@ -288,7 +287,6 @@ balancedContent depth acc = do
             balancedContent depth (T.snoc acc x)
         ]
 
--- Weiter unten die veränderte Funktion einsetzen:
 cleanInlineSpacing :: T.Text -> T.Text
 cleanInlineSpacing input
   | "#h(" `T.isInfixOf` input =
@@ -300,7 +298,7 @@ cleanInlineSpacing input
            in T.strip (before <> trueText)
   | otherwise = input
 
--- Erkennt flache und verpackte Outlines vollständig und reicht sie 1:1 durch
+-- Fully recognizes flat and packaged outlines and passes them through 1:1
 outlineFilterParser :: Parser (Maybe BookNode)
 outlineFilterParser = do
   (rawText, _) <-
@@ -311,7 +309,7 @@ outlineFilterParser = do
         ]
   return $ Just (MalformedFunction (T.stripEnd rawText))
   where
-    -- Fall 1: #outline(...) flach in der Source
+    -- Case 1: #outline(...) embedded directly in the source
     skipFlatOutline = do
       _ <- optional (char '#')
       _ <- string "outline"
@@ -320,7 +318,7 @@ outlineFilterParser = do
       _ <- balancedParens 1
       return ()
 
-    -- Fall 2: #pad(...) [ #outline(...) ]
+    -- Case 2: #pad(...) [ #outline(...) ]
     skipPadWithOutline = do
       _ <- optional (char '#')
       _ <- string "pad"
@@ -334,7 +332,7 @@ outlineFilterParser = do
       _ <- char ']'
       return ()
 
--- Hilfsparser: Zählt geöffnete und geschlossene runde Klammern
+-- Auxiliary parser: Counts open and closed parentheses
 balancedParens :: Int -> Parser ()
 balancedParens 0 = return ()
 balancedParens depth = do
@@ -344,7 +342,7 @@ balancedParens depth = do
       anySingle >> balancedParens depth
     ]
 
--- | Parsed exakt ein #link(<target>)[text] und erlaubt optionale Leerzeichen überall
+-- | Parses exactly one #link(<target>)[text] and allows optional spaces anywhere
 linkParser :: Parser TypstInline
 linkParser = try $ do
   _ <- string "#link"
@@ -360,30 +358,30 @@ linkParser = try $ do
   _ <- char ']'
   return $ InlineLink (T.strip target) (T.strip linkText)
 
--- | Parsed Text zwischen zwei Sternen *fett*
+-- | Parses text between two asterisks *bold*
 boldParser :: Parser TypstInline
 boldParser = try $ do
   _ <- char '*'
-  -- Parsed den Inhalt innerhalb der Sterne rekursiv via inlineParser
-  -- Wir stoppen, sobald das schließende '*' kommt
+  -- Parses the content inside the asterisks recursively using inlineParser
+  -- We stop as soon as the closing ‘*’ appears
   content <- many (notFollowedBy (char '*') >> inlineParser)
   _ <- char '*'
   return $ InlineBold content
 
 -- =====================================================================
--- KORRIGIERTER & VEREINFACHTER INLINE PARSER (In src/Typst/Parser.hs)
+-- INLINE PARSER (In src/Typst/Parser.hs)
 -- =====================================================================
 inlineParser :: Parser TypstInline
 inlineParser =
   choice
-    [ try inlineCodeParser, -- 1. Höchste Priorität: Alles in `...` als PlainText schützen
-      try linkParser,       -- 2. Mit 'try', damit ein fehlgeschlagener Link den Absatz nicht abbricht
-      try boldParser,       -- 3. Ebenfalls mit 'try' absichern
+    [ try inlineCodeParser, -- 1. Top Priority: Protect everything inside `...` as plain text
+      try linkParser, -- 2. Use ‘try’ so that a broken link doesn't break up the paragraph
+      try boldParser, -- 3. Also use ‘try’ to handle exceptions
       try singleNewlineParser,
       plainTextParser
     ]
   where
-    -- Liest `...` komplett als unveränderlichen PlainText ein
+    -- Liest `...` entirely as unalterable plain text
     inlineCodeParser = do
       _ <- char '`'
       code <- takeWhile1P (Just "Inline Code") (\c -> c /= '`' && c /= '\n')
@@ -412,7 +410,6 @@ inlineParser =
             ]
         )
       return $ PlainText " "
-
 
 cleanLabelForKey :: T.Text -> T.Text
 cleanLabelForKey lbl = T.replace "<" "" (T.replace ">" "" lbl)

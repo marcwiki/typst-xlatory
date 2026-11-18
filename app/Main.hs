@@ -9,13 +9,12 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Text.Megaparsec (errorBundlePretty)
 import Data.Yaml (FromJSON (..), decodeFileEither, withObject, (.:), (.:?))
 import GHC.Generics
 import System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
 import System.Environment (getArgs)
 import System.FilePath (replaceExtension, takeExtension, (</>))
-
+import Text.Megaparsec (errorBundlePretty)
 import Typst.Parser (parseTypst)
 import Typst.Printer (extractFunctionsReport, generateOmegaT)
 import qualified Typst.Reconstructor as Reconstructor
@@ -69,15 +68,15 @@ instance FromJSON RulesConfig where
         let legacyTarget = TargetConfig "de" deDir (Just oTgt)
         return $ RulesConfig ruDir oSrc oTgt [legacyTarget] hideFuncs ignoreArgs
 
--- | Lädt die Pfade und Regeln aus der angegebenen YAML-Datei
+-- | Loads the paths and rules from the specified YAML file
 loadRules :: FilePath -> IO RulesConfig
 loadRules path = do
   res <- decodeFileEither path
   case res of
-    Left err -> error $ "Fehler beim Laden der Konfiguration (" ++ path ++ "): " ++ show err
+    Left err -> error $ "Error loading the configuration (" ++ path ++ "): " ++ show err
     Right cfg -> return cfg
 
--- | Extrahiert optionalen Config-Pfad und verbleibende Flags aus den CLI-Argumenten
+-- | Extracts the optional configuration path and any remaining flags from the CLI arguments
 parseCliArgs :: [String] -> (FilePath, [String])
 parseCliArgs ("--config" : path : rest) = (path, rest)
 parseCliArgs ("-c" : path : rest) = (path, rest)
@@ -95,12 +94,12 @@ main = do
   rawArgs <- getArgs
   let (configPath, args) = parseCliArgs rawArgs
 
-  putStrLn $ "[INFO] Verwende Konfiguration: " ++ configPath
+  putStrLn $ "[INFO] Use Configuration: " ++ configPath
   configExists <- doesFileExist configPath
   cfg <-
     if configExists
       then loadRules configPath
-      else error $ "Konfigurationsdatei konnte nicht gefunden werden: " ++ configPath
+      else error $ "The configuration file could not be found: " ++ configPath
 
   let hideSet = S.fromList (cfgHideFunctions cfg)
       ignoreArgsSet = S.fromList (cfgIgnoreNamedArgs cfg)
@@ -109,7 +108,7 @@ main = do
 
   case args of
     ["--import"] -> do
-      putStrLn "[INFO] Starte Import aus den Properties zurück in die Typst-Sourcen..."
+      putStrLn "[INFO] Start the import from the Properties back into the Typst sources..."
       forM_ (cfgTargets cfg) $ \tgt -> do
         let propsDir = fromMaybe (cfgDefaultI18nTargetDir cfg) (targetPropertiesDir tgt)
             outDir = targetOutputDir tgt
@@ -121,27 +120,25 @@ main = do
           outDir
           hideSet
           ignoreArgsSet
-      putStrLn "\n[SUCCESS] Import für alle Zielsprachen abgeschlossen!"
-
+      putStrLn "\n[SUCCESS] Import completed for all target languages!"
     [] -> do
       putStrLn $ "[INFO] Scanne Verzeichnis für Typst-Dateien: " ++ srcDir
       createDirectoryIfMissing True i18nSrcDir
       allFiles <- listDirectory srcDir
       let typstFiles = filter (\f -> takeExtension f == ".typ") allFiles
 
-      putStrLn $ "[INFO] Dateien im Ordner gefunden insg.: " ++ show (length allFiles)
-      putStrLn $ "[INFO] Davon gueltige Typst-Dateien: " ++ show (length typstFiles)
+      putStrLn $ "[INFO] Total number of files found in the folder:: " ++ show (length allFiles)
+      putStrLn $ "[INFO] Of these, valid Typst files: " ++ show (length typstFiles)
       putStrLn "[INFO] Starte Export in die Properties..."
 
       finalFunctions <- foldM (processFile ignoreArgsSet srcDir i18nSrcDir) S.empty typstFiles
 
-      putStrLn "[SUCCESS] Export erfolgreich abgeschlossen!"
+      putStrLn "[SUCCESS] Export completed successfully!"
       putStrLn ""
-      putStrLn "[REPORT] Folgende Typst-Funktionen wurden automatisch fuer die Uebersetzung erfasst:"
+      putStrLn "[REPORT] The following Typst functions were automatically detected for translation:"
       traverse_ (\f -> putStrLn $ "  - " ++ T.unpack f) (S.toList finalFunctions)
-
     _ -> do
-      putStrLn "Verwendung:"
+      putStrLn "Usage:"
       putStrLn "  typst-json-printer [--config <datei.yaml>]           (Export: Typst -> Properties)"
       putStrLn "  typst-json-printer [--config <datei.yaml>] --import  (Import: Properties -> Typst)"
 
@@ -155,11 +152,11 @@ processFile ignoreArgsSet srcDir targetDir accumulatedFunctions file = do
       outputPath = targetDir </> replaceExtension file ".properties"
 
   inputContent <- TIO.readFile inputPath
-  putStrLn $ "\n[SCAN] Verarbeite Datei: " ++ file
+  putStrLn $ "\n[SCAN] Process File: " ++ file
 
   case parseTypst inputPath inputContent of
     Left errorBundle -> do
-      putStrLn $ "[ERROR] Parsing fehlgeschlagen in Datei: " ++ file
+      putStrLn $ "[ERROR] Parsing failed in file: " ++ file
       putStrLn (errorBundlePretty errorBundle)
       return accumulatedFunctions
     Right astBaum -> do

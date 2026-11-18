@@ -33,6 +33,7 @@ hide_functions:
 
 
 ignore_named_args:
+  # Typst-Standards
   - font
   - style
   - weight
@@ -41,3 +42,6 @@ ignore_named_args:
   - fill
   - stroke
   - align
+
+  # custom names:
+  - key
