@@ -1,50 +1,9 @@
 
 // docs/lib/theme.typ
-// OmegaT-freundliche Layout- und Typografie-Komponenten für Buchprojekte
+// OmegaT-compatible layout and typography components for book projects
 
 #import "constants.typ" as std
-
-// =====================================================================
-// HILFSFUNKTIONEN
-// =====================================================================
-
-/// Wandelt Typst-Content rekursiv in einen reinen String um (z. B. für Initialen).
-#let to-string(content) = {
-  if type(content) == "string" {
-    content
-  } else if content.has("text") {
-    content.text
-  } else if content.has("children") {
-    content.children.map(to-string).join("")
-  } else if content.has("body") {
-    to-string(content.body)
-  } else {
-    repr(content)
-  }
-}
-
-/// Hebt den ersten Buchstaben eines Wortes als kalligrafische Initiale hervor.
-/// Nutzt Unicode-Cluster, damit auch kyrillische Zeichen sauber getrennt werden.
-#let initial(wort) = {
-  let wort-str = to-string(wort)
-  let buchstaben = wort-str.clusters()
-
-  if buchstaben.len() > 0 {
-    let erster = buchstaben.at(0)
-    let rest = buchstaben.slice(1).join("")
-
-    text(
-      font: std.font-cursive,
-      size: 1.4em,
-      baseline: -0.03em,
-      erster,
-    )
-    h(-0.3mm)
-    rest
-  } else {
-    wort
-  }
-}
+#import "utils.typ": *
 
 // =====================================================================
 // 1. TITELEI & METADATEN

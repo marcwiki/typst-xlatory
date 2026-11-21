@@ -1,6 +1,6 @@
 
 // docs/lib/elements.typ
-// Grundlegende Text- und Absatzformatierungen sowie Kapitel-Einleitungen
+// Basic text and paragraph formatting, as well as chapter introductions
 
 #import "constants.typ": (
   color-primary,
@@ -9,7 +9,7 @@
   text-base-size,
 )
 
-/// Wendet die globalen Typografie- und Absatzregeln auf das Dokument an.
+/// Applies the global typography and paragraph rules to the document.
 #let apply-base-styles(lang: "de", body) = {
   set text(
     font: font-serif,
@@ -26,8 +26,8 @@
   body
 }
 
-/// Formatiert einen kalligrafischen Einleitungstext für Kapitelanfänge
-/// bündig auf dem 20-mm-Raster.
+/// Formats a calligraphic introductory text for the beginning of a chapter
+/// flush with the 20-mm grid.
 #let intro-cursive(body) = {
   block(
     width: 100%,

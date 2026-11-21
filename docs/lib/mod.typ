@@ -1,8 +1,9 @@
 
 // docs/lib/mod.typ
-// Zentraler Einstiegspunkt der Template-Library für mehrsprachige Buchprojekte
+// Central entry point to the template library for multilingual book projects
 
 #import "constants.typ": *
+#import "utils.typ": *
 #import "theme.typ": *
 #import "page-setup.typ": (
   layout-cover,
@@ -12,10 +13,15 @@
   make-header,
 )
 #import "elements.typ": apply-base-styles, intro-cursive
-#import "headings.typ": apply-heading-styles
-#import "outline.typ": apply-outline-styles, layout-sub-toc
+#import "headings.typ": *
+#import "outline.typ": (
+  apply-outline-styles,
+  layout-sub-toc,
+  layout-main-toc,
+  layout-commentary-toc,
+)
 
-/// Wendet das komplette Buch-Layout auf ein Dokument an.
+/// Applies the entire book layout to a document.
 #let book-template(
   lang: "de",
   book-title: "typst-xlatory",

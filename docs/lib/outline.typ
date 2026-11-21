@@ -1,11 +1,77 @@
 
 // docs/lib/outline.typ
-// Inhaltsverzeichnisse mit eingebetteten Kapitel-Teasern und Teil-Übersichten
+// Tables of contents with embedded chapter teasers and section overviews
 
 #import "constants.typ": font-cursive
+#import "utils.typ": *
 
-/// Erzeugt ein lokales Unterverzeichnis für die Ebenen 3 bis 5
-/// zwischen zwei definierten Labels im Dokument.
+/// Renders the main table of contents (up to `before`) with Level 1 entries
+/// in cursive script (font-cursive) without page numbers, followed by the
+/// suffix defined via `meta-set(key: "outline-h1")`.
+#let layout-main-toc(before: none) = {
+  let target-selector = if before != none {
+    heading.where(level: 1).or(heading.where(level: 2)).before(before)
+  } else {
+    heading.where(level: 1).or(heading.where(level: 2))
+  }
+
+  [
+    #show outline.entry.where(level: 1): it => {
+      context {
+        let suffix = meta-str("outline-h1")
+
+        block(
+          width: 100%,
+          above: 1.2em,
+          below: 0.4em,
+          inset: (left: 0.5em, right: 0.5em, bottom: 0.3em),
+          stroke: (bottom: 0.4pt + gray.lighten(55%)),
+          link(
+            it.element.location(),
+            {
+              set par(first-line-indent: 0mm, leading: 0.35em, justify: false)
+              grid(
+                columns: (1.8em, 1fr),
+                column-gutter: 0.4em,
+                align(left)[#text(weight: "bold", size: 1.05em)[#it.prefix()]],
+                align(left)[
+                  #text(
+                    font: font-cursive,
+                    size: 1.25em,
+                    weight: "bold",
+                  )[#it.body()]
+                  #if suffix != none and suffix != "" [
+                    #h(0.4em)
+                    #text(size: 0.9em, style: "italic")[#suffix]
+                  ]
+                ],
+              )
+            },
+          ),
+        )
+      }
+    }
+
+    #outline(
+      title: none,
+      target: target-selector,
+    )
+  ]
+}
+
+/// Renders the commentary table of contents starting after `after`.
+#let layout-commentary-toc(after) = {
+  outline(
+    title: none,
+    target: heading
+      .where(level: 1)
+      .or(heading.where(level: 2))
+      .after(after, inclusive: false),
+  )
+}
+
+/// Creates a local subdirectory for levels 3 through 5
+/// between two defined labels in the document.
 #let layout-sub-toc(after-label, before-label) = {
   pad(left: 20mm - 1em, right: -15mm, top: 0mm)[
     #set par(leading: 0.3em)
@@ -23,55 +89,14 @@
   ]
 }
 
-
-/// Hebt den ersten Buchstaben eines Teaser-Labels im Inhaltsverzeichnis hervor.
-#let outline-initial(wort) = {
-  let wort-str = if type(wort) == str {
-    wort
-  } else if wort.has("text") {
-    wort.text
-  } else {
-    ""
-  }
-
-  let buchstaben = wort-str.clusters()
-
-  if buchstaben.len() > 0 {
-    let erster = buchstaben.at(0)
-    let rest = buchstaben.slice(1).join("")
-
-    text(
-      font: font-cursive,
-      size: 1.4em,
-      baseline: -0.03em,
-      erster,
-    )
-    h(-0.3mm)
-    rest
-  } else {
-    wort
-  }
-}
-
-/// Ermittelt einen nachfolgenden `<meta-chapter>`-Teaser für eine Überschrift.
+/// Identifies a subsequent `<meta-chapter>` teaser for a heading.
 #let find-associated-teaser(ueberschrift-position) = {
-  let alle-teasers = query(<meta-chapter>)
-  let alle-headings = query(heading)
-
-  let nachfolgende-teasers = alle-teasers.filter(el => (
-    el.location().page() > ueberschrift-position.page()
-      or (
-        el.location().page() == ueberschrift-position.page()
-          and el.location().position().y > ueberschrift-position.position().y
-      )
-  ))
-  let nachfolgende-headings = alle-headings.filter(el => (
-    el.location().page() > ueberschrift-position.page()
-      or (
-        el.location().page() == ueberschrift-position.page()
-          and el.location().position().y > ueberschrift-position.position().y
-      )
-  ))
+  let nachfolgende-teasers = query(
+    selector(<meta-chapter>).after(ueberschrift-position),
+  )
+  let nachfolgende-headings = query(
+    selector(heading).after(ueberschrift-position, inclusive: false),
+  )
 
   let teaser-element = nachfolgende-teasers.at(0, default: none)
   let naechste-ueberschrift = nachfolgende-headings.at(0, default: none)
@@ -98,7 +123,7 @@
   }
 }
 
-/// Formatiert Einträge im Inhaltsverzeichnis und blendet zugehörige Teaser ein.
+/// Formats entries in the table of contents and displays the corresponding teasers.
 #let apply-outline-styles(body) = {
   show outline.entry: set block(above: 0.35em, below: 0.35em)
 
@@ -111,6 +136,14 @@
       let dynamic-left-inset = if level == 2 { 0.5em } else if level > 2 {
         1.1em + (level - 3) * 1.5em
       } else { 0.5em }
+
+      // Synchronisation mit cl-numbered aus headings.typ
+      let label-text = if it.element.has("label") {
+        str(it.element.label)
+      } else {
+        ""
+      }
+      let is-numbered = "cl-numbered" in label-text
 
       context {
         let ueberschrift-position = it.element.location()
@@ -165,7 +198,7 @@
                     grid(
                       columns: (2.4em, 1fr, auto),
                       column-gutter: 0.4em,
-                      align(left)[#it.prefix()],
+                      align(left)[#if is-numbered { it.prefix() }],
                       align(left)[
                         #it.body()
                         #box(width: 1fr, repeat[#text(fill: gray)[.]])
@@ -186,6 +219,7 @@
               )
             }
 
+            // 2. Show optional chapter teasers
             if teaser-daten != none {
               let teaser-label = teaser-daten.at("label", default: none)
               let teaser-extract = teaser-daten.at("extract", default: none)
@@ -206,7 +240,7 @@
                     )
 
                     #if teaser-label != none {
-                      outline-initial(teaser-label)
+                      initial(teaser-label)
                       if teaser-extract != none {
                         parbreak()
                       }

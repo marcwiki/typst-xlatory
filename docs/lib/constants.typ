@@ -1,6 +1,6 @@
 
 // docs/lib/constants.typ
-// Zentrale Design-Konstanten für Typografie, Farben und Seitenränder
+// Key Design Guidelines for Typography, Colors, and Page Margins
 
 // Fonts
 #let font-serif = "Libertinus Serif"

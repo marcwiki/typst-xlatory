@@ -1,9 +1,9 @@
 
 // docs/lib/page-setup.typ
-// Seitenlayouts für Titelei, Vorwort sowie lebende Kolumnentitel
+// Page layouts for the title page, foreword, and running column headings
 
-/// Zeigt ein vollflächiges Cover-Bild auf der ersten Seite ohne Ränder.
-#let layout-cover(image-path: "../images/cover.jpeg") = {
+/// Displays a full-page cover image on the first page with no margins.
+#let layout-cover(image-path: "/images/cover.jpeg") = {
   page(
     paper: "a5",
     margin: 0cm,
@@ -15,10 +15,10 @@
       height: 100%,
       fit: "cover",
     ),
-  )
+  )[]
 }
 
-/// Layout für Schmutztitel oder Impressumsseiten ohne Kopf-/Fußzeile.
+/// Layout for cover pages or legal notice pages without header and footer.
 #let layout-frontmatter(body) = {
   set page(
     paper: "a5",
@@ -35,7 +35,7 @@
   body
 }
 
-/// Layout für die Haupttitelseite mit breitem rechtem Weißraum.
+/// Layout for the main title page with a wide white space on the right.
 #let layout-title-page(body) = {
   set page(
     paper: "a5",
@@ -47,9 +47,9 @@
   body
 }
 
-/// Erzeugt dynamische Kolumnentitel in der Kopfzeile (unterdrückt auf Kapitelanfangsseiten).
+/// Generates dynamic column headings in the header (suppressed on chapter title pages).
 ///
-/// - book-title (str | content): Der Titel des Buches für gerade Seiten.
+/// - book-title (str | content): The title of the book for even-numbered pages.
 #let make-header(book-title) = {
   let current-page = here().page()
 
@@ -95,7 +95,7 @@
   }
 }
 
-/// Erzeugt die zentrierte Seitenzahl in der Fußzeile (auf Seite 1 unterdrückt).
+/// Displays the centered page number in the footer (suppressed on page 1).
 #let make-footer() = {
   let page-num = counter(page).at(here()).first()
   if page-num == 1 { return none }
