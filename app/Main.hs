@@ -13,7 +13,7 @@ import Data.Yaml (FromJSON (..), decodeFileEither, withObject, (.:), (.:?))
 import GHC.Generics
 import System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
 import System.Environment (getArgs)
-import System.FilePath (replaceExtension, takeExtension, (</>))
+import System.FilePath (isRelative, normalise, replaceExtension, takeDirectory, takeExtension, (</>))
 import Text.Megaparsec (errorBundlePretty)
 import Typst.Parser (parseTypst)
 import Typst.Printer (extractFunctionsReport, generateOmegaT)
@@ -68,13 +68,36 @@ instance FromJSON RulesConfig where
         let legacyTarget = TargetConfig "de" deDir (Just oTgt)
         return $ RulesConfig ruDir oSrc oTgt [legacyTarget] hideFuncs ignoreArgs
 
--- | Loads the paths and rules from the specified YAML file
+-- | Resolves a path relative to a base directory (unless it is empty or already absolute)
+resolvePath :: FilePath -> FilePath -> FilePath
+resolvePath baseDir p
+  | null p = p
+  | isRelative p = normalise (baseDir </> p)
+  | otherwise = normalise p
+
+-- | Resolves all configured directory paths relative to the YAML file's directory
+resolveConfigPaths :: FilePath -> RulesConfig -> RulesConfig
+resolveConfigPaths configPath cfg =
+  let baseDir = takeDirectory configPath
+      resolveTarget tgt =
+        tgt
+          { targetOutputDir = resolvePath baseDir (targetOutputDir tgt),
+            targetPropertiesDir = fmap (resolvePath baseDir) (targetPropertiesDir tgt)
+          }
+   in cfg
+        { cfgSourceDir = resolvePath baseDir (cfgSourceDir cfg),
+          cfgI18nSourceDir = resolvePath baseDir (cfgI18nSourceDir cfg),
+          cfgDefaultI18nTargetDir = resolvePath baseDir (cfgDefaultI18nTargetDir cfg),
+          cfgTargets = map resolveTarget (cfgTargets cfg)
+        }
+
+-- | Loads the paths and rules from the specified YAML file and resolves paths relative to it
 loadRules :: FilePath -> IO RulesConfig
 loadRules path = do
   res <- decodeFileEither path
   case res of
     Left err -> error $ "Error loading the configuration (" ++ path ++ "): " ++ show err
-    Right cfg -> return cfg
+    Right cfg -> return (resolveConfigPaths path cfg)
 
 -- | Extracts the optional configuration path and any remaining flags from the CLI arguments
 parseCliArgs :: [String] -> (FilePath, [String])
@@ -139,8 +162,8 @@ main = do
       traverse_ (\f -> putStrLn $ "  - " ++ T.unpack f) (S.toList finalFunctions)
     _ -> do
       putStrLn "Usage:"
-      putStrLn "  typst-json-printer [--config <datei.yaml>]           (Export: Typst -> Properties)"
-      putStrLn "  typst-json-printer [--config <datei.yaml>] --import  (Import: Properties -> Typst)"
+      putStrLn "  typst-xlatory [--config <datei.yaml>]           (Export: Typst -> Properties)"
+      putStrLn "  typst-xlatory [--config <datei.yaml>] --import  (Import: Properties -> Typst)"
 
 -- =====================================================================
 -- EXPORTER HELPER
