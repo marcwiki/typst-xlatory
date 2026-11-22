@@ -9,7 +9,7 @@
   layout-cover,
   layout-frontmatter,
   layout-title-page,
-  make-footer,
+  layout-mainmatter,
   make-header,
 )
 #import "elements.typ": apply-base-styles, intro-cursive

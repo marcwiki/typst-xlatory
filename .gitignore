@@ -16,3 +16,12 @@ enforce/
 mt/
 penalty-xxx/
 tmx2source/
+
+# Editor- & Betriebssystem-Dateien
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+*~

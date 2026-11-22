@@ -6,35 +6,36 @@
 #import "utils.typ": *
 
 // =====================================================================
-// 1. TITELEI & METADATEN
+// 1. TITLE & METADATA
 // =====================================================================
 
-/// Formatiert den Autorennamen auf der Titelseite.
+/// Formats the author's name on the title page.
 #let title-author(body) = {
   v(30mm)
   text(font: std.font-cursive, size: 18pt)[#body]
 }
 
-/// Formatiert den Haupttitel auf der Titelseite.
+/// Formats the main title on the title page.
 #let title-main(body) = {
   v(15mm)
   text(size: 20pt)[#body]
 }
 
-/// Formatiert den Untertitel auf der Titelseite.
+/// Formats the subtitle on the title page.
 #let title-sub(body) = {
   v(15mm)
   text(font: std.font-cursive, size: 18pt)[#body]
 }
 
-/// Formatiert die Verlags- oder Versionsangabe unten auf der Titelseite.
+/// Formats the publisher or version information at the bottom of the title page.
 #let title-publisher(body) = {
   v(30mm)
   text(size: 11pt)[#body]
 }
 
-/// Formatiert eine Titel-Zusatzzeile auf der ersten Seite.
+/// Formats an additional title line on the first page.
 #let title-note(body) = {
+  h(20mm)
   text(
     style: "normal",
     font: std.font-serif,
@@ -43,7 +44,7 @@
 }
 
 // =====================================================================
-// 2. LAYOUT-UMSCHALTER & SPEZIAL-BOXEN (für hide_functions)
+// 2. LAYOUT SWITCHES & SPECIAL BOXES (for hide_functions)
 // =====================================================================
 
 /// Aktiviert den regulären Buch-Blocksatz mit 3 mm Erstzeileneinzug.
@@ -52,7 +53,7 @@
   body
 }
 
-/// Kapselt den OmegaT-Tag-Regex als unveränderlichen Codeblock.
+/// Encapsulates the OmegaT tag regex as an immutable code block.
 #let layout-regex-box(dummy: true) = {
   raw(
     block: true,
@@ -62,119 +63,30 @@
 }
 
 // =====================================================================
-// 3. ECHTE ÜBERSCHRIFTEN (h1-* bis h5-*)
+// 4. PARAGRAPH & TEXT MACROS
 // =====================================================================
 
-/// Erzeugt eine kalligrafische Kapitelüberschrift (Level 1 ohne Nummerierung).
-#let h1-cursive(body) = {
-  set text(font: std.font-cursive, size: 0.8em, weight: "bold")
-  heading(level: 1, numbering: none, body)
-}
-
-/// Große Serif-Überschrift (Level 1) für Kommentar- oder Referenzabschnitte.
-#let h1-serif(body) = {
-  show heading.where(level: 1): it => {
-    block(
-      sticky: true,
-      breakable: false,
-      inset: (top: 10mm, bottom: 15mm, left: 20mm, right: 8pt),
-      width: 100%,
-    )[
-      #set text(font: std.font-serif, size: 2.5em, weight: "bold")
-      #it.body
-    ]
-  }
-  heading(level: 1, body)
-}
-
-/// Überschrift Ebene 3 in Schreibschrift.
-#let h3-cursive(body) = {
-  show heading.where(level: 3): it => {
-    block(
-      sticky: true,
-      breakable: false,
-      inset: (top: 8pt, bottom: 8pt, left: 20mm, right: 8pt),
-      width: 100%,
-    )[
-      #set align(left)
-      #set par(justify: false, leading: 0.3em)
-      #set text(font: std.font-cursive, size: 1.5em, weight: "bold")
-      #it.body
-    ]
-  }
-  heading(level: 3, body)
-}
-
-/// Überschrift Ebene 3 in Serif-Versalien.
-#let h3-caps(body) = {
-  block(
-    inset: (top: 8pt, bottom: 0pt, left: 20mm, right: 8pt),
-    width: 100%,
-    {
-      set text(size: 0.85em, weight: "regular")
-      heading(level: 3, upper(body))
-    },
-  )
-}
-
-/// Überschrift Ebene 4 in Schreibschrift.
-#let h4-cursive(body) = {
-  show heading.where(level: 4): it => {
-    block(
-      sticky: true,
-      breakable: false,
-      inset: (top: 8pt, bottom: 8pt, left: 20mm, right: 8pt),
-      width: 100%,
-    )[
-      #set text(font: std.font-cursive, size: 1.3em, weight: "bold")
-      #it.body
-    ]
-  }
-  heading(level: 4, body)
-}
-
-/// Überschrift Ebene 5 in fett gesetzter Serif-Schrift.
-#let h5-serif(body) = {
-  show heading.where(level: 5): it => {
-    block(
-      sticky: true,
-      breakable: false,
-      inset: (top: 8pt, bottom: 8pt, left: 20mm, right: 8pt),
-      width: 100%,
-    )[
-      #set text(font: std.font-serif, weight: "bold")
-      #it.body
-    ]
-  }
-  heading(level: 5, body)
-}
-
-// =====================================================================
-// 4. ABSATZ- & TEXT-MAKROS
-// =====================================================================
-
-/// Visuelle Unterzeile unter H1 in Versalien (kein eigenes Heading).
+/// Visual subheading below H1 in all caps (not a separate heading).
 #let par-h1-subcaps(body) = {
-  v(-8mm)
   set text(size: 1.6em, font: std.font-serif, weight: "bold")
   set par(justify: false, leading: 0.45em)
   pad(left: 20mm, align(left, upper(body)))
 }
 
-/// Visueller Untertitel direkt unterhalb von `h1-serif` (kein eigenes Heading).
+/// Visual subtitle directly below `h1-serif` (no separate heading).
 #let par-h1-subtitle(body) = {
-  v(-10mm)
+  v(-5mm)
   h(20mm)
   text(weight: "bold", style: "normal", size: 1.4em, body)
 }
 
-/// Fett gesetzter Einleitungsabsatz unter H1 (kein eigenes Heading).
+/// Bold introductory paragraph under H1 (no separate heading).
 #let par-h1-lead(body) = {
   text(font: std.font-serif, style: "normal", size: 1.3em, weight: "bold", body)
   v(3em)
 }
 
-/// Einleitender Info-Absatz in großer Schreibschrift (kein eigenes Heading).
+/// Introductory informational paragraph in large cursive font (no separate heading).
 #let par-h2-lead(body) = [
   #block(
     width: 100%,
@@ -191,7 +103,7 @@
   ]
 ]
 
-/// Formatiert eine einleitende Leitfrage in Schreibschrift am Kapitelbeginn.
+/// Formats an introductory guiding question
 #let question-cursive(body) = {
   block(
     breakable: false,
@@ -204,7 +116,7 @@
   ]
 }
 
-/// Startet einen Absatz mit 20-mm-Einzug und verzierter Initiale am ersten Wort.
+/// Starts a paragraph with a 20-mm indent and a decorative initial on the first word.
 #let dropcap-par(body) = {
   v(-2mm)
   h(20mm)
@@ -212,13 +124,13 @@
   body
 }
 
-/// Variante von `dropcap-par` mit leicht reduziertem Einzug (15 mm).
+/// A variant of `dropcap-par` with a slightly reduced indent (15 mm).
 #let dropcap-par-compact(body) = {
   h(-5mm)
   dropcap-par(body)
 }
 
-/// Zeigt einen hervorgehobenen Fazit- oder Merksatz-Block mit linker Titelspalte.
+/// Displays a highlighted “Conclusion” or “Key Points” block with a title column on the left.
 #let summary-box(title: "", body) = {
   v(-3mm)
   block(width: 100%, breakable: false, above: 1.5em, below: 1.5em)[
@@ -238,7 +150,7 @@
   ]
 }
 
-/// Markiert eine Sprecher-Zeile in Dialogen (optional mit 20-mm-Einzug und Initiale).
+/// Highlights a character's line in dialogue (optionally with a 20-mm indent and an initial).
 #let speaker(big-indent: false, body) = {
   let current-indent = if big-indent { 20mm } else { 3mm }
 
@@ -255,7 +167,7 @@
   ]
 }
 
-/// Setzt einen zweispaltigen Eintrag mit 10 mm linker Labelspalte.
+/// Sets a two-column entry with a 10-mm left label column.
 #let two-column-row(label: none, gutter: -2mm, body) = {
   grid(
     columns: (10mm, 1fr),
@@ -264,23 +176,23 @@
   v(gutter)
 }
 
-/// Richtet den Inhalt rechtsbündig aus (z. B. für Ort und Datum).
+/// Aligns the content to the right (e.g., for the location and date).
 #let align-right(body) = {
   align(right)[#body]
 }
 
-/// Setzt Kleingedrucktes (8 pt) ohne Erstzeileneinzug.
+/// Sets the small print (8 pt) without a first-line indent.
 #let small-note(body) = {
-  show par: set par(first-line-indent: 0mm)
+  show par: set par(first-line-indent: 0mm, leading: 0.3em)
   text(size: 8pt)[#body]
 }
 
 // =====================================================================
-// 5. METADATEN-TEASER FÜR DAS INHALTSVERZEICHNIS (meta-*)
+// 5. METADATA TEASERS FOR THE TABLE OF CONTENTS (meta-*)
 // =====================================================================
 
-/// Speichert einen Kapitel-Teaser als Metadatum für das Inhaltsverzeichnis
-/// und zeigt ihn gleichzeitig eingerückt in Schreibschrift im Text an.
+/// Saves a chapter teaser as metadata for the table of contents
+/// and displays it in the text at the same time, indented and in cursive.
 #let meta-teaser(extract-text) = [
   #metadata((extract: extract-text))<meta-chapter>
   #block(width: 100%, breakable: false, sticky: true)[
@@ -293,7 +205,7 @@
   ]
 ]
 
-/// Wie `meta-teaser`, ergänzt um ein fett hervorgehobenes Label (z. B. Stichwort).
+/// Same as `meta-teaser`, but with a label highlighted in bold (e.g., keyword).
 #let meta-teaser-labeled(label: none, body) = [
   #metadata((label: label, extract: body))<meta-chapter>
 
@@ -316,12 +228,12 @@
   ]
 ]
 
-/// Hinterlegt einen unsichtbaren Teaser-Text ausschliesslich für das Inhaltsverzeichnis.
+/// Inserts an invisible teaser text intended solely for the table of contents.
 #let meta-teaser-hidden(extract-text) = [
   #metadata((extract: extract-text))<meta-chapter>
 ]
 
-/// Info-Extrakt in Serif-Versalien (Ebene 3) inkl. Metadatum für das Inhaltsverzeichnis.
+/// Information summary in serif uppercase (Layer 3), including metadata for the table of contents.
 #let meta-teaser-h3-caps(extract-text) = [
   #metadata((extract: extract-text))<meta-chapter>
   #block(width: 100%, breakable: false, sticky: true)[
@@ -340,7 +252,7 @@
   ]
 ]
 
-/// Info-Extrakt in Serif-Versalien (Ebene 4) inkl. Metadatum für das Inhaltsverzeichnis.
+/// Info excerpt in serif uppercase (Layer 4), including metadata for the table of contents.
 #let meta-teaser-h4-caps(extract-text) = [
   #metadata((extract: extract-text))<meta-chapter>
   #block(
@@ -365,7 +277,7 @@
   ]
 ]
 
-/// Info-Extrakt in Schreibschrift (Ebene 5) inkl. Metadatum für das Inhaltsverzeichnis.
+/// Information summary in cursive (Level 5), including metadata for the table of contents.
 #let meta-teaser-h5-cursive(extract-text) = [
   #metadata((extract: extract-text))<meta-chapter>
   #block(width: 100%, breakable: false, sticky: true)[

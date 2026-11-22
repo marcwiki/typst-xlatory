@@ -1,5 +1,4 @@
 
-#import "/lib/utils.typ": *
 #import "/lib/mod.typ": (
   layout-regex-box,
   layout-title-page,
@@ -48,17 +47,17 @@
 
 #pagebreak()
 
-= Eine Umgebung zur Erstellung und Übersetzung von PDF Dokumenten<h1_id_1>
+= Eine Umgebung zur Erstellung und Übersetzung von PDF Dokumenten <h1_id_1>
 
-== Zielsetzung<h2_id_2:cl-numbered>
+== Zielsetzung <h2_id_2:cl-numbered>
 
 - Die erstellten PDF Dokumente sollen bis ins Detail kontrollierbar und definierbar sein.<p_id_3>
 
-- Die Umgebung soll die effiiente Bereitstellung von Dokumenten in mehreren Sprachen ermöglichen.<p_id_4>
+- Die Umgebung soll die effiziente Bereitstellung von Dokumenten in mehreren Sprachen ermöglichen.<p_id_4>
 
 - Der Fokus liegt auf Textinhalten, mathematische Formeln werden nicht unterstützt.<p_id_5>
 
-- Ein späterer Ausbau zur automatisierten Erstellung von alternativen Formaten wie HTML oder Obisian Markdown soll mit vernünfitem Aufwand möglich sein.<p_id_6>
+- Ein späterer Ausbau zur automatisierten Erstellung von alternativen Formaten wie HTML oder Obidian Markdown soll mit vernünftigem Aufwand möglich sein. <p_id_6>
 
 - Es sollen ausschliesslich Open Source Komponenten zum Einsatz kommen.<p_id_7>
 
@@ -72,7 +71,7 @@ Allerdings konnte ich zunächst meine OmegaT Übersetzungsumgebung nicht auf Typ
 
 Damit ist das Typst-Originaldokument meine "Single Source of Truth" und gibt die Struktur sowie das Format vor für daraus abgeleiteten, übersetzten Dokumente.<p_id_12>
 
-Da ich den von mir verwendeten Sprachumfang von Typst mittlerweile recht gut kenne, könnte ich statt der Schlüssel-Wert-Paare wahlweise auch andere Formate generieren, zum Beispiel HTML oder Obisian Markup. Einem Ausbau zur Generierung von alternativen Formaten steht also nichts im Wege. <p_id_13>
+Da ich den von mir verwendeten Sprachumfang von Typst mittlerweile recht gut kenne, könnte ich statt der Schlüssel-Wert-Paare wahlweise auch andere Formate generieren, zum Beispiel HTML oder Obsidian Markup. Einem Ausbau zur Generierung von alternativen Formaten steht also nichts im Wege. <p_id_13>
 
 = Einführung und Motivation <h1:einfuehrung>
 
@@ -104,7 +103,7 @@ Wechselt ein Autor später das Übersetzungswerkzeug, bleiben sämtliche Typst-Q
 
 - *Ein CAT-Tool*: Zum Beispiel das kostenlose Open-Source-Programm OmegaT für die eigentliche Übersetzungsarbeit. <p:inst-list-2>
 
-- *typst-json-printer*: Das kompilierte Kommandozeilen-Werkzeug für den Export und Import der Texte. <p:inst-list-3>
+- *typst-xlatory*: Das kompilierte Kommandozeilen-Werkzeug für den Export und Import der Texte. <p:inst-list-3>
 
 == Empfohlene Verzeichnisstruktur <h2:verzeichnisstruktur>
 
