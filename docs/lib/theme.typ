@@ -43,6 +43,16 @@
   )[#body]
 }
 
+/// Formats an additional title line on the first page.
+#let title-note-right(body) = {
+  v(10mm)
+  text(
+    style: "normal",
+    font: std.font-serif,
+    size: 1.4em,
+  )[#body]
+}
+
 // =====================================================================
 // 2. LAYOUT SWITCHES & SPECIAL BOXES (for hide_functions)
 // =====================================================================

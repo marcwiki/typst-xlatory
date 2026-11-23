@@ -24,7 +24,6 @@
 /// Applies the entire book layout to a document.
 #let book-template(
   lang: "de",
-  book-title: "typst-xlatory",
   body,
 ) = {
   show: apply-outline-styles
@@ -39,8 +38,16 @@
       top: margin-y,
       bottom: margin-y,
     ),
-    header: context { make-header(book-title) },
-    footer: context { make-footer() },
+    header: context { make-header() },
+    footer: context {
+      let page-num = counter(page).get().first()
+      set text(size: 8.5pt, fill: rgb("#444444"))
+      if calc.odd(page-num) {
+        align(right)[#page-num]
+      } else {
+        align(left)[#page-num]
+      }
+    },
   )
 
   body

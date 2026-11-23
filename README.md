@@ -47,7 +47,6 @@ my-book/
 └── pdf/                  # Compiled PDF outputs
 ```
 
-
 ### 2. Configuration (`project.yaml`)
 
 ```yaml
@@ -82,6 +81,24 @@ ignore_named_args:
   - stroke
   - align
 ```
+
+### Supported Typst Subset
+
+`typst-xlatory` intentionally targets a clean, flat document subset (`Typst.AST`) to guarantee lossless round-trip reconstruction:
+
+* **Top-Level Structure (`BookNode`):**
+  * **Headings:** Standard ATX-style headings (`=`, `==`, `===`, ...) with optional trailing labels (`<h1:intro>`).
+  * **Paragraphs & Lists:** Standard body paragraphs and list items separated by blank lines, with optional trailing labels (`<p:intro-1>`).
+  * **Custom Macro Calls:** Top-level function calls (`#callout(title: "Note")[Text] <box:1>`). Bracketed content (`ContentArg`) and double-quoted named arguments (`NamedArg`) are extracted; positional arguments and parameters listed in `ignore_named_args` are preserved verbatim.
+  * **Layout Directives:** Rules such as `#import`, `#set`, `#show`, and functions listed in `hide_functions` pass through untouched.
+* **Inline Markup (`TypstInline`):**
+  * Plain text and inline code in backticks (`` `...` ``, protected from label parsing).
+  * Bold emphasis wrapped in asterisks (`*...*`).
+  * Internal and external links (`#link(<target>)[text]`).
+* **Authoring Constraints:**
+  * **Flat Top-Level Hierarchy:** Do not wrap chapters or multiple paragraphs in outer content blocks (`[...]`); use `#show:` rules to switch layouts instead.
+  * **Trailing Labels:** Labels (`<key>`) must appear at the very end of a block without spaces or angle brackets inside the identifier.
+
 
 ### 3. Run the Pipeline
 

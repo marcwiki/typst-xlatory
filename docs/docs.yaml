@@ -1,16 +1,16 @@
 # docs/docs.yaml - Konfigurationsdatei für die mehrsprachige Gebrauchsanleitung
 
 project:
-  source_dir: "docs/src_de"
-  i18n_source_dir: "docs/i18n/source"
+  source_dir: "src_de"
+  i18n_source_dir: "i18n/source"
 
 targets:
   - lang: "en"
-    i18n_target_dir: "docs/i18n/target_en"
-    output_dir: "docs/out_en"
+    i18n_target_dir: "i18n/target_en"
+    output_dir: "out_en"
   - lang: "ru"
-    i18n_target_dir: "docs/i18n/target_ru"
-    output_dir: "docs/out_ru"
+    i18n_target_dir: "i18n/target_ru"
+    output_dir: "out_ru"
 
 hide_functions:
   # Typst-Standardbefehle
@@ -45,3 +45,4 @@ ignore_named_args:
 
   # custom names:
   - key
+  - h1-font

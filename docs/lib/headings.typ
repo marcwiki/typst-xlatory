@@ -117,7 +117,7 @@
   body,
   ..args,
 ) = {
-  show heading.where(level: level): it => {
+  show heading: it => {
     let label-text = if it.has("label") { str(it.label) } else { "" }
     let is-numbered = numbered or ("cl-numbered" in label-text)
 
@@ -135,14 +135,12 @@
             #grid(
               columns: (17mm, 3mm, 1fr),
               align(right)[
-                #set text(..text-style)
-                #(str(aktuelle-nummer) + ".")
+                #text(..text-style)[#(str(aktuelle-nummer) + ".")]
               ],
               none,
               align(left)[
                 #set par(justify: false, leading: 0.3em)
-                #set text(..text-style)
-                #transform(it.body)
+                #text(..text-style)[#transform(it.body)]
               ],
             )
           ]
@@ -158,13 +156,13 @@
       )[
         #set align(left)
         #set par(justify: false, leading: 0.3em)
-        #set text(..text-style)
-        #transform(it.body)
+        #text(..text-style)[#transform(it.body)]
       ]
     }
   }
   heading(level: level, ..args, body)
 }
+
 
 // =====================================================================
 // 3. EXPLICIT HEADING MACROS (h1-* through h5-*)

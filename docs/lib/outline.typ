@@ -2,7 +2,7 @@
 // docs/lib/outline.typ
 // Tables of contents with embedded chapter teasers and section overviews
 
-#import "constants.typ": font-cursive
+#import "constants.typ": font-cursive, font-serif
 #import "headings.typ": cl-chapter-counter
 #import "utils.typ": *
 
@@ -12,7 +12,7 @@
 /// Renders the main table of contents (up to `before`) with Level 1 entries
 /// in cursive script (font-cursive) without page numbers, followed by the
 /// suffix defined via `meta-set(key: "outline-h1")`.
-#let layout-main-toc(before: none) = {
+#let layout-main-toc(before: none, h1-font: font-cursive) = {
   let target-selector = if before != none {
     heading.where(level: 1).or(heading.where(level: 2)).before(before)
   } else {
@@ -40,8 +40,8 @@
                 align(left)[#text(weight: "bold", size: 1.05em)[#it.prefix()]],
                 align(left)[
                   #text(
-                    font: font-cursive,
-                    size: 1.25em,
+                    font: h1-font,
+                    size: if h1-font == font-cursive { 1.25em } else { 1.05em },
                     weight: "bold",
                   )[#it.body()]
                   #if suffix != none and suffix != "" [
@@ -129,6 +129,8 @@
 
 /// Formats entries in the table of contents and displays the corresponding teasers.
 #let apply-outline-styles(body) = {
+  // Setzt die Basisschriftart für das gesamte Inhaltsverzeichnis (alle Ebenen)
+  show outline: set text(font: font-serif)
   show outline.entry: set block(above: 0.35em, below: 0.35em)
   show outline.entry: it => {
     show linebreak: [ ]

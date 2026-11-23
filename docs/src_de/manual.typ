@@ -1,26 +1,12 @@
 
-#import "/lib/mod.typ": (
-  layout-regex-box,
-  layout-title-page,
-  layout-body-text,
-  title-author,
-  title-main,
-  title-sub,
-  title-note,
-  title-publisher,
-  book-template,
-  meta-teaser,
-  question-cursive,
-  dropcap-par,
-  summary-box,
-  two-column-row,
-  speaker,
-  small-note,
-  align-right,
-)
+#import "/lib/mod.typ": *
 
-// 1. Titelseiten-Layout aktivieren (ohne [...] um den Inhalt!)
-#show: layout-title-page
+// 1. Globale Template-Regeln ganz am Anfang aktivieren
+#show: book-template.with(lang: "de")
+
+// 2. Titelseite in eigenem Scope kapseln, damit Ränder/Header danach sauber zurückspringen
+//#show: layout-title-page
+#show: layout-frontmatter
 
 #title-author[Marc Günthardt] <title:author>
 
@@ -28,26 +14,31 @@
 
 #title-sub[Verlustfreie Roundtrip-Übersetzung für Typst-Bücher] <title:sub>
 
-#title-note[Handbuch & Referenzprojekt] <title:note>
+#title-note-right[Handbuch & Referenzprojekt] <title:note>
 
-#title-publisher[Version 0.96 — Open-Source-Dokumentation] <title:pub>
+#title-publisher[Version 1.0.0 — Open-Source-Dokumentation] <title:pub>
 
 #pagebreak()
-
-// 2. Normales Seiten- und Absatz-Layout wiederherstellen
-#show: book-template.with(lang: "de", book-title: "typst-xlatory")
 
 #show: layout-body-text
 
-#outline(
-  title: [Inhaltsverzeichnis],
-  target: heading.where(level: 1).or(heading.where(level: 2)),
-  depth: 2,
-)
+// 3. Metadaten für lebende Kolumnentitel setzen
+#meta-set(key: "book-title")[typst-xlatory]
+
+// 4. Hauptteil-Layout (A5-Druckränder, Header, Footer) aktivieren
+#show: layout-mainmatter
+
+#layout-main-toc(h1-font: font-serif)
 
 #pagebreak()
 
-= Eine Umgebung zur Erstellung und Übersetzung von PDF Dokumenten <h1_id_1>
+// =====================================================================
+// AB HIER DIE KAPITEL (alle nummerierten Kapitel einheitlich mit :cl-numbered)
+// =====================================================================
+
+#h1-serif[Einführung und Architektur] <h1:einfuehrung>
+
+#meta-teaser[Wie lassen sich mehrsprachige Bücher in Typst pflegen, ohne Layout und Inhalt zu entkoppeln?] <teaser:intro>
 
 == Zielsetzung <h2_id_2:cl-numbered>
 
@@ -57,13 +48,13 @@
 
 - Der Fokus liegt auf Textinhalten, mathematische Formeln werden nicht unterstützt.<p_id_5>
 
-- Ein späterer Ausbau zur automatisierten Erstellung von alternativen Formaten wie HTML oder Obidian Markdown soll mit vernünftigem Aufwand möglich sein. <p_id_6>
+- Ein späterer Ausbau zur automatisierten Erstellung von alternativen Formaten wie HTML oder Obsidian Markdown soll mit vernünftigem Aufwand möglich sein. <p_id_6>
 
 - Es sollen ausschliesslich Open Source Komponenten zum Einsatz kommen.<p_id_7>
 
-== Entstehungsgeschichte und Architektur<h2_id_8:cl-numbered>
+== Entstehungsgeschichte und Architektur<h2_architektur:cl-numbered>
 
-#dropcap-par[Zu Beginn nahm ich an, dass der EPUB 3 Standard eine sinnvolle Basis sein könnte, und habe mit allerlei PDF Generatoren versucht, ein komplexeres Format zu erstellen. Dies gelang mir einzig mit dem Prince-Generator einigermassen, was leider nicht Open Source ist, und auch sehr aufwendig werden kann, wenn die Vorgaben komplex sind. Die Idee war für mich verlockend, eine Single Source of Truth im Epub 3 Format, und daraus sollten die PDF-Formate erstellt werden. Ein Buch wäre so automatisch als Print-Medium wie auch als Epub verfügbar. Da ein Epub intern HTML verwendet, war die Einbindung von OmegaT als Übersetzhungsumgebung gut unterstützt. Diesen Ansatz musst ich irgendwann als gescheitert betrachten, da die mir verfügbaren Open Source PDF Generatoren eine präzise Gestaltung von PDF-Formaten nicht unterstützt haben.] <p_id_9>
+#dropcap-par[Zu Beginn nahm ich an, dass der EPUB 3 Standard eine sinnvolle Basis sein könnte, und habe mit allerlei PDF Generatoren versucht, ein komplexeres Format zu erstellen. Dies gelang mir einzig mit dem Prince-Generator einigermassen, was leider nicht Open Source ist, und auch sehr aufwendig werden kann, wenn die Vorgaben komplex sind. Die Idee war für mich verlockend, eine Single Source of Truth im Epub 3 Format, und daraus sollten die PDF-Formate erstellt werden. Ein Buch wäre so automatisch als Print-Medium wie auch als Epub verfügbar. Da ein Epub intern HTML verwendet, war die Einbindung von OmegaT als Übersetzungsumgebung gut unterstützt. Diesen Ansatz musste ich irgendwann als gescheitert betrachten, da die mir verfügbaren Open Source PDF Generatoren eine präzise Gestaltung von PDF-Formaten nicht unterstützt haben.] <p_id_9>
 
 Also habe ich meinen Blickwinkel darauf gerichtet, welche Umgebungen es überhaupt gibt, die eine effiziente und präzise Umsetzung von PDF Formaten erlauben. Dabei bin ich auf Typst gestossen, das meistens in akademischen Umgebungen verwendet wird, und unter vielem anderen auch die Darstellung von mathematischen Formeln erlaubt. Auf jeden Fall unterstützt Typst die Umsetzung von Texten nach PDF bestens, man muss ja nicht das ganze Funktionsspektrum nutzen. Ein weiterer grosser Vorteil von Typst liegt in seinen Möglichkeiten zur Standardisierung und Vereinheitlichung von Formaten. Bei der Übersetzung einer ganzen Buchreihe mit ähnlichen oder gleichen Formaten kann man so auf eine einzige Bibliothek von Formatierungsfunktionen zurückgreifen, und alle Bücher der Reihe werden in allen Sprachen gleich formatiert, sofern die Sprachen von links nach rechts und von oben nach unten geschrieben werden.<p_id_10>
 
@@ -73,29 +64,25 @@ Damit ist das Typst-Originaldokument meine "Single Source of Truth" und gibt die
 
 Da ich den von mir verwendeten Sprachumfang von Typst mittlerweile recht gut kenne, könnte ich statt der Schlüssel-Wert-Paare wahlweise auch andere Formate generieren, zum Beispiel HTML oder Obsidian Markup. Einem Ausbau zur Generierung von alternativen Formaten steht also nichts im Wege. <p_id_13>
 
-= Einführung und Motivation <h1:einfuehrung>
-
-#meta-teaser[Wie lassen sich mehrsprachige Bücher in Typst pflegen, ohne Layout und Inhalt zu entkoppeln?] <teaser:intro>
-
 #question-cursive[Warum scheitert das einfache Kopieren von Typst-Dateien bei wachsenden Buchprojekten?] <q:intro>
 
 #dropcap-par[Wer ein Buch oder eine umfangreiche Dokumentation in Typst schreibt und in mehrere Sprachen übersetzen möchte, stösst schnell auf ein klassisches Problem. Kopiert man die `.typ`-Dateien für jede Sprache und übersetzt direkt im Quelltext, laufen Layout und Inhalt auseinander.] <p:intro-1>
 
 Jede spätere Anpassung an Schriftgrössen, Abständen oder Makros muss dann mühsam in jeder einzelnen Sprachdatei nachgezogen werden. Gleichzeitig fehlen in einem reinen Texteditor wichtige Werkzeuge professioneller Übersetzer wie Translation Memories und Terminologie-Datenbanken. <p:intro-2>
 
-== Die Lösung: Trennung von Inhalt und Layout <h2:loesung>
+== Die Lösung: Trennung von Inhalt und Layout <h2:loesung:cl-numbered>
 
 #dropcap-par[Dieses Werkzeug schlägt eine Brücke zwischen der modernen Satzwelt von Typst und etablierten Übersetzungsprogrammen (CAT-Tools). Statt rohe Typst-Dateien manuell zu duplizieren, extrahiert der Transpiler ausschliesslich die übersetzbaren Texte in standardisierte Java-`.properties`-Dateien.] <p:loesung-1>
 
 Nach der Übersetzung setzt der Reconstructor die Zieltexte wieder exakt in die ursprüngliche Typst-Struktur ein. Alle Layout-Anweisungen, Abstände, Verweise und benutzerdefinierten Funktionen bleiben dabei vollständig erhalten. <p:loesung-2>
 
-== Tool-Unabhängigkeit (Loose Coupling) <h2:loose-coupling>
+== Tool-Unabhängigkeit (Loose Coupling) <h2:loose-coupling:cl.numbered>
 
 #dropcap-par[Das System ist bewusst nicht an ein bestimmtes Übersetzungsprogramm gebunden. Da als Austauschformat gewöhnliche `.properties`-Dateien dienen, lässt sich der Workflow problemlos mit Programmen wie OmegaT, Poedit, Weblate oder Crowdin verbinden.] <p:coupling-1>
 
 Wechselt ein Autor später das Übersetzungswerkzeug, bleiben sämtliche Typst-Quelldateien und die Projekt-Konfiguration unverändert. <p:coupling-2>
 
-= Installation und Voraussetzungen <h1:installation>
+#h1-serif[Installation und Voraussetzungen] <h1:installation>
 
 #dropcap-par[Für den Einsatz der Übersetzungs-Pipeline werden drei Komponenten auf dem System benötigt:] <p:inst-1>
 
@@ -105,7 +92,7 @@ Wechselt ein Autor später das Übersetzungswerkzeug, bleiben sämtliche Typst-Q
 
 - *typst-xlatory*: Das kompilierte Kommandozeilen-Werkzeug für den Export und Import der Texte. <p:inst-list-3>
 
-== Empfohlene Verzeichnisstruktur <h2:verzeichnisstruktur>
+== Empfohlene Verzeichnisstruktur <h2:verzeichnisstruktur:cl-numbered>
 
 #dropcap-par[Damit Vorlagen, Originaltexte, Übersetzungsdateien und fertige Sprachausgaben sauber getrennt bleiben, empfiehlt sich folgende Ordnerstruktur pro Buchprojekt:] <p:dir-1>
 
@@ -128,9 +115,9 @@ Die einzelnen Verzeichnisse erfüllen folgende Aufgaben: <p:dir-2>
 
 - *`out_en/` und `out_ru/`*: Rekonstruierte, kompilierbare Typst-Dateien in den Zielsprachen. <p:dir-list-6>
 
-Alle rekonstruierten Sprachversionen greifen über relative Pfade auf denselben `lib/`-Ordner zu. Eine Design-Änderung in der Vorlage wirkt sich dadurch sofort auf sämtliche Sprachausgaben aus. <p:dir-2>
+Alle rekonstruierten Sprachversionen greifen über relative Pfade auf denselben `lib/`-Ordner zu. Eine Design-Änderung in der Vorlage wirkt sich dadurch sofort auf sämtliche Sprachausgaben aus. <p:dir-3>
 
-= Schnellstart <h1:schnellstart>
+#h1-serif[Schnellstart] <h1:schnellstart>
 
 #dropcap-par[In fünf kurzen Schritten entsteht aus einem deutschen Typst-Dokument eine mehrsprachige Publikation.] <p:quick-1>
 
@@ -158,7 +145,7 @@ Alle rekonstruierten Sprachversionen greifen über relative Pfade auf denselben 
 
 #raw(
   block: true,
-  "typst-json-printer --config projekt.yaml",
+  "typst-xlatory --config projekt.yaml",
 ) <raw:s3-code>
 
 Im Ordner `i18n/source/` liegt nun die Datei `kapitel1.properties` mit allen extrahierten Textsegmenten bereit. <p:s3-2>
@@ -173,16 +160,50 @@ Im Ordner `i18n/source/` liegt nun die Datei `kapitel1.properties` mit allen ext
 
 #raw(
   block: true,
-  "typst-json-printer --config projekt.yaml --import\ntypst compile out_en/kapitel1.typ\ntypst compile out_ru/kapitel1.typ",
+  "typst-xlatory --config projekt.yaml --import\ntypst compile out_en/kapitel1.typ\ntypst compile out_ru/kapitel1.typ",
 ) <raw:s5-code>
 
 In den Zielordnern stehen nun fertige Typst-Dateien und PDFs in allen konfigurierten Sprachen bereit. <p:s5-2>
+
+#h1-serif[Unterstützter Typst-Sprachumfang] <h1:typst-subset>
+
+#dropcap-par[Um eine verlustfreie Rückübersetzung zu garantieren, verarbeitet `typst-xlatory` eine klar definierte Teilmenge der Typst-Syntax. Alle Elemente ausserhalb dieses Textbereichs – etwa Layout-Direktiven – werden unverändert durchgereicht.] <p:subset-1>
+
+== Struktur auf oberster Ebene <h2:subset-top-level:cl-numbered>
+
+#dropcap-par[Der Parser zerlegt jede `.typ`-Datei auf der obersten Dokumentebene in vier Knotentypen:] <p:subset-top-1>
+
+- *Überschriften*: Klassische Typst-Überschriften (`=`, `==`, `===` usw.) mit optionalem Label am Zeilenende. <p:subset-top-list-1>
+
+- *Absätze und Aufzählungen*: Durch Leerzeilen getrennte Textblöcke und Listeneinträge mit optionalem Label am Ende. <p:subset-top-list-2>
+
+- *Eigene Funktionsaufrufe*: Makros auf oberster Ebene wie `#summary-box(title: "Merksatz:")[Inhalt] <box:1>`. Inhalte in eckigen Klammern sowie benannte Textargumente in doppelten Anführungszeichen werden exportiert; Positionsargumente und Parameter aus `ignore_named_args` bleiben unangetastet. <p:subset-top-list-3>
+
+- *Layout-Direktiven*: Anweisungen wie `#import`, `#set`, `#show` sowie Funktionen aus `hide_functions` werden beim Export übersprungen und beim Import exakt an ihrer ursprünglichen Position wieder eingesetzt. <p:subset-top-list-4>
+
+== Unterstützte Inline-Auszeichnungen <h2:subset-inline:cl-numbered>
+
+#dropcap-par[Innerhalb von Absätzen und Überschriften erkennt der Transpiler folgende Inline-Elemente und übergibt sie sicher an das CAT-Tool:] <p:subset-inl-1>
+
+- *Fettdruck*: Textauszeichnungen mit Sternchen (`*fett*`), auch verschachtelt mit Links. <p:subset-inl-list-1>
+
+- *Links*: Interne Verweise und Web-Links in der Form `#link(<ziel>)[Linktext]`. <p:subset-inl-list-2>
+
+- *Inline-Code*: In Backticks eingeschlossener Quelltext (`` `...` ``) bleibt geschützt; darin enthaltene spitze Klammern werden nicht als Segment-Labels fehlinterpretiert. <p:subset-inl-list-3>
+
+== Wichtige Regeln für Autoren <h2:subset-rules:cl-numbered>
+
+#dropcap-par[Damit der AST-Parser jedes Segment sauber trennen kann, gelten beim Schreiben zwei einfache Grundregeln:] <p:subset-rules-1>
+
+- *Flache Dokumentstruktur*: Kapitel oder mehrere Absätze dürfen nicht in äussere Container-Klammern (`[...]`) eingeschlossen werden. Layout-Wechsel erfolgen ausschliesslich über `#show:`-Anweisungen. <p:subset-rules-list-1>
+
+- *Labels am Blockende*: Ein Segment-Label wie `<p:absatz-1>` muss immer ganz am Ende eines Absatzes oder Funktionsaufrufs stehen und darf keine Leerzeichen, Backticks oder weitere spitze Klammern enthalten. <p:subset-rules-list-2>
 
 = Typst für die Übersetzung strukturieren <h1:best-practices>
 
 #dropcap-par[Damit der Roundtrip zwischen Typst und dem CAT-Tool auch bei grösseren Buchprojekten zuverlässig funktioniert, haben sich einige Grundregeln für das Schreiben der Quelldateien bewährt.] <p:bp-1>
 
-== Eindeutige Labels nutzen <h2:labels>
+== Eindeutige Labels nutzen <h2:labels:cl-numbered>
 
 #dropcap-par[Jede Überschrift, jeder Absatz und jede übersetzbare Funktion sollte mit einem eindeutigen Label in spitzen Klammern abgeschlossen werden, beispielsweise `<p:einleitung-1>` oder `<box:merksatz-2>`.] <p:labels-1>
 
@@ -190,19 +211,19 @@ Ohne explizites Label vergibt der Transpiler automatisch fortlaufende Nummern. F
 
 Mit festen Labels bleibt jedes Textsegment dauerhaft an seinen Bezeichner gebunden, unabhängig davon, wo im Dokument Absätze ergänzt oder verschoben werden. <p:labels-3>
 
-== Information Hiding anwenden <h2:information-hiding>
+== Information Hiding anwenden <h2:information-hiding:cl-numbered>
 
 #dropcap-par[Komplexe Layout-Anweisungen wie `#set par(...)`, `#show ...` oder verschachtelte `#block(...)`-Container gehören nicht direkt in den Fliesstext. Lagere solche Formatierungen konsequent als benannte Funktionen in deine Vorlagendatei im `lib/`-Ordner aus.] <p:ih-1>
 
 Im eigentlichen Kapiteltext rufst du anschliessend nur noch kompakte, einzeilige Makros auf. Dadurch sieht der Übersetzer im CAT-Tool ausschliesslich den reinen Inhalt ohne störenden Layout-Code. <p:ih-2>
 
-== Eigene Typst-Funktionen gestalten <h2:eigene-funktionen>
+== Eigene Typst-Funktionen gestalten <h2:eigene-funktionen:cl-numbered>
 
 #dropcap-par[Eigene Layout-Komponenten wie Infoboxen, Zitatkästen oder Fazit-Blöcke werden vom Transpiler automatisch erkannt. Übergibst du den Haupttext in eckigen Klammern, exportiert ihn das Werkzeug direkt als übersetzbares Segment.] <p:fn-1>
 
 Zusätzlich erkennt der Transpiler alle benannten Argumente, deren Wert in doppelten Anführungszeichen steht. Ein Aufruf wie `#fazit(title: "Zusammenfassung:")[Der eigentliche Inhalt.] <box:fazit-1>` erzeugt automatisch zwei getrennte Einträge in der `.properties`-Datei: einen für den Titel und einen für den Inhalt. <p:fn-2>
 
-== Layout-Umschalter per `#show` statt Container-Klammern <h2:show-vs-container>
+== Layout-Umschalter per `#show` statt Container-Klammern <h2:show-vs-container:cl-numbered>
 
 #dropcap-par[Sollen für einen Dokumentabschnitt spezielle Seitenränder oder Absatzregeln gelten (etwa für die Titelseite oder den Hauptteil), dürfen diese Layout-Funktionen nicht als grosse Container in eckigen Klammern um ganze Kapitel gelegt werden.] <p:show-1>
 
@@ -212,19 +233,18 @@ Nutze stattdessen die Typst-Anweisung `#show:`, um ein Layout für den nachfolge
 
 #raw(
   block: true,
-  "#show: layout-title-page\n\n#title-main[Mein Buchtitel] <title:main>\n\n#pagebreak()\n\n#show: layout-body-text",
+  "#show: layout-title-page\n\n#title-main[Mein Buchtitel] <title:main>\n\n#pagebreak()\n\n#show: layout-mainmatter",
 ) <raw:show-example>
 
 Auf diese Weise bleiben alle Überschriften, Absätze und Funktionsaufrufe auf der obersten Ebene erhalten und werden als separate Segmente an das CAT-Tool übergeben. <p:show-4>
-
-= Konfigurations-Referenz <h1:konfiguration>
-
-#dropcap-par[Das gesamte Verhalten der Export- und Import-Pipeline wird über eine zentrale YAML-Datei gesteuert. Über den Parameter `--config` lässt sich für jedes Buchprojekt eine eigene Konfigurationsdatei angeben.] <p:cfg-1>
 
 #summary-box(
   title: "Merksatz:",
 )[Stabile Labels und ausgelagerte Makros sorgen dafür, dass Übersetzer im CAT-Tool ausschliesslich reinen Inhalt bearbeiten, während das Buchlayout zentral gesteuert bleibt.] <box:bp-summary>
 
+= Konfigurations-Referenz <h1:konfiguration>
+
+#dropcap-par[Das gesamte Verhalten der Export- und Import-Pipeline wird über eine zentrale YAML-Datei gesteuert. Über den Parameter `--config` lässt sich für jedes Buchprojekt eine eigene Konfigurationsdatei angeben.] <p:cfg-1>
 
 == Bereich project <h2:cfg-project>
 
@@ -252,7 +272,7 @@ Auf diese Weise bleiben alle Überschriften, Absätze und Funktionsaufrufe auf d
 
 #dropcap-par[Manche Typst-Funktionen erwarten technische Parameter als Textzeichenkette, etwa `font: "Libertinus Serif"` oder `align: "left"`. Damit solche Steuerwerte nicht versehentlich im CAT-Tool zur Übersetzung angeboten werden, lassen sich deren Argumentnamen unter `ignore_named_args` ausschliessen.] <p:cfg-ign-1>
 
-= Praxisbeispiel aus der Buchproduktion <h1:praxisbeispiel>
+#h1-serif[Praxisbeispiel aus der Buchproduktion] <h1:praxisbeispiel>
 
 #dropcap-par[Dieses Handbuch selbst dient als vollständiges Referenzprojekt für den beschriebenen Workflow. Der deutsche Ausgangstext befindet sich im Verzeichnis `docs/src_de/`, während die Layout-Komponenten zentral in `docs/lib/` gepflegt werden.] <p:praxis-1>
 
@@ -283,7 +303,7 @@ Aus dieser einzigen Quelle werden über die Konfigurationsdatei `docs/docs.yaml`
 
 #align-right[Stand: November 2026 — Open-Source-Referenz] <right:date>
 
-= Fehlerbehebung und Tipps für den Buchalltag <h1:troubleshooting>
+#h1-serif[Fehlerbehebung und Tipps für den Buchalltag] <h1:troubleshooting>
 
 #dropcap-par[In der täglichen Arbeit mit wachsenden Buchmanuskripten helfen folgende Hinweise, typische Stolpersteine schnell zu lösen:] <p:ts-1>
 
