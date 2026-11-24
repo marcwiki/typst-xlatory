@@ -36,6 +36,9 @@ All Pull Requests are currently reviewed and verified manually. To keep reviews 
    ```
 6. **Include the regenerated `docs/out_<lang>/` files** in your PR so the generated Typst markup can be inspected directly. *(Please do not commit the `pdf/` directory or `.pdf` files).*
 
+7. **Register the new language for releases:** Add a `typst compile` line for `pdf/manual_<lang>.pdf` to the `Compile PDFs` step in `.github/workflows/release.yml`, and add the new language/manual to the list under **Documentation & Live Example** in `README.md` so it is included in future release PDFs.
+
+
 #### Path B: Correcting the Russian Manual
 1. Edit `docs/i18n/target_ru/manual_ru_RU.properties` to fix machine-translated phrasing, terminology, or grammar.
 2. Reconstruct all target languages:

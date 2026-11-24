@@ -155,10 +155,10 @@ The `docs/` directory contains the full user manual—written in German (`docs/s
 
 ## Contributing
 
-[![Contributions Welcome](https://shields.io)](CONTRIBUTING.md)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen)](CONTRIBUTING.md)
 
 Contributions to `typst-xlatory` are very welcome! We are especially looking for help with:
-* **Translating the manual** into new languages.
+* **Translating the manual** into new languages (please ensure your PR also updates the PDF compile list in `.github/workflows/release.yml` and the manual list in this README so new languages are included in release PDFs).
 * **Refining the Russian manual** (`docs/i18n/target_ru/manual_ru_RU.properties`), which is currently largely machine-translated.
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the step-by-step workflow and validation checklist before opening a Pull Request.
