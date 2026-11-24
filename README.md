@@ -35,7 +35,7 @@ Translating large Typst projects by copying `.typ` files per language quickly tu
 ```text
 my-book/
 ├── docs/
-│   ├── project.yaml      # Pipeline configuration
+│   ├── docs.yaml         # Pipeline configuration
 │   ├── lib/              # Shared Typst templates and layout macros
 │   ├── src_de/           # Source Typst files
 │   ├── i18n/
@@ -47,7 +47,7 @@ my-book/
 └── pdf/                  # Compiled PDF outputs
 ```
 
-### 2. Configuration (`project.yaml`)
+### 2. Configuration (`docs.yaml`)
 
 ```yaml
 project:
@@ -104,12 +104,12 @@ ignore_named_args:
 
 ```bash
 # Step 1: Export Typst source files to .properties
-typst-xlatory --config docs/project.yaml
+typst-xlatory --config docs/docs.yaml
 
 # Step 2: Translate the files in docs/i18n/source/ using your CAT tool
 
 # Step 3: Reconstruct all target languages
-typst-xlatory --config docs/project.yaml --import
+typst-xlatory --config docs/docs.yaml --import
 
 # Step 4: Compile PDFs with Typst
 mkdir -p pdf
@@ -142,7 +142,7 @@ stack run -- --config docs/docs.yaml --import
 
 ## Documentation & Live Example
 
-Pre-compiled PDF manuals (`manual_de.pdf`, `manual_en.pdf`, `manual_ru.pdf`) as well as pre-built binaries for Linux, Windows, and macOS are available on the [Releases](https://github.com) page.
+Pre-compiled PDF manuals (`manual_de.pdf`, `manual_en.pdf`, `manual_ru.pdf`) as well as pre-built binaries for Linux, Windows, and macOS are available on the [Releases](https://github.com/marcwiki/typst-xlatory/releases) page.
 
 The `docs/` directory contains the full user manual—written in German (`docs/src_de/manual.typ`) and translated using this exact pipeline into English and Russian:
 
@@ -150,6 +150,18 @@ The `docs/` directory contains the full user manual—written in German (`docs/s
 * **Configuration:** `docs/docs.yaml`
 * **Reconstructed Outputs:** `docs/out_en/` and `docs/out_ru/`
 * **Compiled Manuals:** `pdf/manual_de.pdf`, `pdf/manual_en.pdf`, and `pdf/manual_ru.pdf`
+
+---
+
+## Contributing
+
+[![Contributions Welcome](https://shields.io)](CONTRIBUTING.md)
+
+Contributions to `typst-xlatory` are very welcome! We are especially looking for help with:
+* **Translating the manual** into new languages.
+* **Refining the Russian manual** (`docs/i18n/target_ru/manual_ru_RU.properties`), which is currently largely machine-translated.
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the step-by-step workflow and validation checklist before opening a Pull Request.
 
 ---
 
