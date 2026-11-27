@@ -9,7 +9,7 @@ Write your book or documentation once in Typst, translate the extracted text seg
 ## How It Works: Quick Example
 
 1. Source Typst file (en/chapter1.typ)
-2. 
+
 Content blocks use standard Typst labels as stable translation keys, while layout imports and styling functions remain untouched:
 
 ```typst
