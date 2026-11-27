@@ -6,6 +6,48 @@ Write your book or documentation once in Typst, translate the extracted text seg
 
 ---
 
+## How It Works: Quick Example
+
+1. Source Typst file (en/chapter1.typ)
+2. 
+Content blocks use standard Typst labels as stable translation keys, while layout imports and styling functions remain untouched:
+
+```typst
+#import "../lib/template.typ": callout
+
+= Introduction <h:intro>
+
+Welcome to the user manual. <p:welcome>
+
+#callout(type: "info")[Please read the safety notes carefully.] <c:safety>
+```
+
+2. Extracted .properties file (en/chapter1.properties)
+
+Translators only see clean key-value pairs in their CAT tool (e.g., OmegaT, Weblate):
+
+```properties
+h:intro = Introduction
+p:welcome = Welcome to the user manual.
+c:safety = Please read the safety notes carefully.
+```
+
+3. Reconstructed target file (de/chapter1.typ)
+
+After translating the .properties file and running typst-xlatory --import, the exact Typst structure and layout logic are restored:
+
+```typst
+#import "../lib/template.typ": callout
+
+= Einführung <h:intro>
+
+Willkommen im Benutzerhandbuch. <p:welcome>
+
+#callout(type: "info")[Bitte lesen Sie die Sicherheitshinweise sorgfältig durch.] <c:safety>
+```
+
+---
+
 ## Why `typst-xlatory`?
 
 Translating large Typst projects by copying `.typ` files per language quickly turns into a maintenance nightmare. Every layout tweak, macro update, or spacing adjustment has to be repeated across every language file, while translators are exposed to fragile markup.
