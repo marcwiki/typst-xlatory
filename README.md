@@ -1,5 +1,7 @@
 # typst-xlatory
 
+[![Typst Forum](https://img.shields.io/badge/Typst_Forum-Showcase-239DAD)](https://forum.typst.app/t/typst-xlatory-lossless-round-trip-translation-workflow-for-typst-cat-tools-omegat-weblate-crowdin/10313)
+
 **A lossless round-trip transpiler connecting [Typst](https://typst.app) documents with CAT tools (like [OmegaT](https://omegat.org), Weblate, or Crowdin) via standard Java `.properties` files.**
 
 Write your book or documentation once in Typst, translate the extracted text segments using professional translation memories, and reconstruct clean, ready-to-compile Typst source files for any number of target languages—without ever duplicating or breaking your layout code.
